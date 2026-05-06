@@ -221,15 +221,19 @@
       <div class="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
         @php
         $team = [
-          ['init' => 'YZ', 'name' => 'YZ', 'role' => 'Full Stack Developer', 'color' => 'from-yellow-400 to-amber-500'],
-          ['init' => 'KZ', 'name' => 'KAZUMI', 'role' => 'AI & Architecture', 'color' => 'from-violet-500 to-purple-600'],
-          ['init' => 'FR', 'name' => 'FR', 'role' => 'DevOps & Deployment', 'color' => 'from-blue-500 to-cyan-500'],
+          ['photo' => 'storage/images/nao.jpg', 'init' => 'YZ', 'name' => 'YZ', 'role' => 'Ternak Bebek enak ya...', 'color' => 'from-yellow-400 to-amber-500'],
+          ['photo' => '', 'init' => 'KZ', 'name' => 'KAZUMI', 'role' => 'AI & Architecture', 'color' => 'from-violet-500 to-purple-600'],
+          ['photo' => '', 'init' => 'FR', 'name' => 'FR', 'role' => 'DevOps & Deployment', 'color' => 'from-blue-500 to-cyan-500'],
         ];
         @endphp
         @foreach($team as $t)
         <div class="group text-center p-6 rounded-2xl hover:bg-gray-50 transition-all duration-300">
-          <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br {{ $t['color'] }} flex items-center justify-center text-2xl font-black text-white shadow-lg group-hover:scale-110 group-hover:rounded-xl transition-all duration-300">
-            {{ $t['init'] }}
+          <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br {{ $t['color'] }} flex items-center justify-center text-2xl font-black text-white shadow-lg group-hover:scale-110 group-hover:rounded-xl transition-all duration-300 overflow-hidden relative">
+            @if($t['photo'])
+              <img src="{{ asset($t['photo']) }}" alt="{{ $t['name'] }}" class="w-full h-full object-cover absolute inset-0">
+            @else
+              {{ $t['init'] }}
+            @endif
           </div>
           <h3 class="font-bold text-gray-800">{{ $t['name'] }}</h3>
           <p class="text-sm text-gray-400 mt-0.5">{{ $t['role'] }}</p>

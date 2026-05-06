@@ -98,6 +98,7 @@
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Perangkat</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Kerusakan</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Harga</th>
+              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Teknisi</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Status</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Aksi</th>
             </tr>
@@ -114,6 +115,13 @@
                 <td class="px-5 py-4 text-sm text-gray-600">{{ $labelPerangkat[$s->perangkat] ?? $s->perangkat }}</td>
                 <td class="px-5 py-4 text-sm text-gray-600">{{ $labelKerusakan[$s->jenis_kerusakan] ?? $s->jenis_kerusakan }}</td>
                 <td class="px-5 py-4 text-sm font-bold text-yellow-600">{{ $s->estimasi_harga ? 'Rp ' . number_format($s->estimasi_harga, 0, ',', '.') : '-' }}</td>
+                <td class="px-5 py-4 text-sm">
+                  @if($s->teknisi)
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ $s->teknisi->name }}</span>
+                  @else
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Unassigned</span>
+                  @endif
+                </td>
                 <td class="px-5 py-4">
                   <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusClass[$s->status] ?? 'bg-gray-100 text-gray-700' }}">{{ $s->status }}</span>
                 </td>
@@ -144,7 +152,7 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="7" class="px-6 py-14 text-center text-gray-300"><i class="fas fa-inbox text-4xl mb-2 block"></i>Belum ada data servis masuk.</td></tr>
+              <tr><td colspan="8" class="px-6 py-14 text-center text-gray-300"><i class="fas fa-inbox text-4xl mb-2 block"></i>Belum ada data servis masuk.</td></tr>
             @endforelse
           </tbody>
         </table>

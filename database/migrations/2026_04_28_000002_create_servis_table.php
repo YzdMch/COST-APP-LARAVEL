@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('no_telepon', 20);
             $table->enum('perangkat', ['macbook', 'windows', 'pc', 'imac', 'other']);
             $table->enum('jenis_kerusakan', ['lcd', 'battery', 'ssd', 'thermal', 'other']);
-            $table->enum('cabang', ['surabaya']);
+            $table->string('cabang', 100)->nullable();
             $table->text('deskripsi');
             $table->decimal('estimasi_harga', 12, 2)->nullable();
             $table->string('foto', 255)->nullable();

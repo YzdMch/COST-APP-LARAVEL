@@ -40,8 +40,15 @@ class StatusController extends Controller
             $foto = $result['secure_url'];
         }
 
+        // Auto-assign to the teknisi if not assigned yet
+        $updateData = ['status' => $request->status];
+        if (is_null($servis->teknisi_id) && auth()->user()->role === 'teknisi') {
+            $updateData['teknisi_id'] = auth()->id();
+            $updateData['assigned_at'] = now();
+        }
+
         // Update servis status
-        $servis->update(['status' => $request->status]);
+        $servis->update($updateData);
 
         // Create log entry
         ServisLog::create([

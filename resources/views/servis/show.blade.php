@@ -55,7 +55,7 @@
           <div class="space-y-3 text-sm">
             <div class="flex justify-between"><span class="text-gray-400">Perangkat</span><span class="font-semibold text-gray-700">{{ $labelPerangkat[$servis->perangkat] ?? $servis->perangkat }}</span></div>
             <div class="flex justify-between"><span class="text-gray-400">Kerusakan</span><span class="font-semibold text-gray-700">{{ $labelKerusakan[$servis->jenis_kerusakan] ?? $servis->jenis_kerusakan }}</span></div>
-            <div class="flex justify-between"><span class="text-gray-400">Cabang</span><span class="font-semibold text-gray-700">Surabaya</span></div>
+            <div class="flex justify-between"><span class="text-gray-400">Cabang</span><span class="font-semibold text-gray-700">{{ $servis->cabangRelasi?->nama ?? ucfirst($servis->cabang) }}</span></div>
             <div class="flex justify-between"><span class="text-gray-400">Tanggal Masuk</span><span class="text-gray-700">{{ $servis->created_at->format('d M Y, H:i') }}</span></div>
             <div class="flex justify-between"><span class="text-gray-400">Estimasi Biaya</span>
               <span class="font-bold text-yellow-600">{{ $servis->estimasi_harga ? 'Rp ' . number_format($servis->estimasi_harga, 0, ',', '.') : 'Menunggu pengecekan' }}</span>

@@ -75,7 +75,7 @@
       @if($statusFilter)<input type="hidden" name="status" value="{{ $statusFilter }}">@endif
       <div>
         <label class="text-xs font-semibold text-gray-500 mb-1 block">Cabang</label>
-        <select name="cabang_id" onchange="this.form.submit()" class="border border-gray-200 rounded-xl py-2 px-3 text-sm focus:ring-2 focus:ring-yellow-400">
+        <select name="cabang_id" onchange="this.form.submit()" class="min-w-[200px] border border-gray-200 rounded-xl py-2 px-3 text-sm focus:ring-2 focus:ring-yellow-400">
           <option value="">Semua Cabang</option>
           @foreach($cabangList as $c)
           <option value="{{ $c->id }}" {{ $cabangId == $c->id ? 'selected' : '' }}>{{ $c->nama }}</option>
