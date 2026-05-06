@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
 
 class Servis extends Model
 {
@@ -23,20 +24,37 @@ class Servis extends Model
         'perangkat',
         'jenis_kerusakan',
         'cabang',
+        'cabang_id',
         'deskripsi',
         'estimasi_harga',
         'foto',
         'status',
+        'teknisi_id',
+        'assigned_at',
+        'sla_target_jam',
+        'completed_at',
     ];
 
     protected $casts = [
         'estimasi_harga' => 'decimal:2',
         'created_at' => 'datetime',
+        'assigned_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function teknisi(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'teknisi_id');
+    }
+
+    public function cabangRelasi(): BelongsTo
+    {
+        return $this->belongsTo(Cabang::class, 'cabang_id');
     }
 
     public function logs(): HasMany
@@ -52,6 +70,46 @@ class Servis extends Model
         $tanggal = date('Ymd');
         $randomSuffix = strtoupper(substr(uniqid(), -4));
         return 'GK-' . $tanggal . '-' . $randomSuffix;
+    }
+
+    /**
+     * Check if service has exceeded SLA target
+     */
+    public function isOverSla(): bool
+    {
+        if (!$this->sla_target_jam) return false;
+        if ($this->status === 'Selesai') return false;
+
+        $startTime = $this->assigned_at ?? $this->created_at;
+        $deadline = $startTime->copy()->addHours($this->sla_target_jam);
+
+        return Carbon::now()->greaterThan($deadline);
+    }
+
+    /**
+     * Get SLA remaining hours (negative = overdue)
+     */
+    public function slaRemainingHours(): ?float
+    {
+        if (!$this->sla_target_jam) return null;
+
+        $startTime = $this->assigned_at ?? $this->created_at;
+        $deadline = $startTime->copy()->addHours($this->sla_target_jam);
+
+        if ($this->status === 'Selesai' && $this->completed_at) {
+            return $deadline->diffInHours($this->completed_at, false);
+        }
+
+        return $deadline->diffInHours(Carbon::now(), false);
+    }
+
+    /**
+     * Get completion time in hours (from created_at to completed_at)
+     */
+    public function completionTimeHours(): ?float
+    {
+        if (!$this->completed_at) return null;
+        return $this->created_at->diffInHours($this->completed_at);
     }
 
     /**

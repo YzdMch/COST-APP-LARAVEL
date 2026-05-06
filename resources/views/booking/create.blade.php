@@ -34,7 +34,6 @@
             @csrf
             <input type="hidden" name="perangkat" x-model="estimasiData.device">
             <input type="hidden" name="kerusakan" x-model="estimasiData.issue">
-            <input type="hidden" name="cabang" value="surabaya">
 
             <div class="space-y-5">
               {{-- Nama --}}
@@ -62,6 +61,41 @@
                     class="w-full border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition">
                   @error('no_telepon') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
+              </div>
+
+              {{-- Pilih Cabang --}}
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2 text-sm">Lokasi Servis <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  @foreach($cabangList as $c)
+                  <label class="relative cursor-pointer group">
+                    <input type="radio" name="cabang_id" value="{{ $c->id }}" required
+                      class="peer sr-only" {{ old('cabang_id') == $c->id ? 'checked' : '' }}>
+                    <div class="border-2 border-gray-200 rounded-xl p-4 transition-all
+                      peer-checked:border-yellow-400 peer-checked:bg-yellow-50 peer-checked:shadow-lg peer-checked:shadow-yellow-100
+                      group-hover:border-gray-300 group-hover:bg-gray-50">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white flex-shrink-0">
+                          <i class="fas fa-store text-sm"></i>
+                        </div>
+                        <div>
+                          <p class="font-semibold text-gray-800 text-sm">{{ $c->nama }}</p>
+                          <p class="text-xs text-gray-400 mt-0.5">{{ $c->alamat ?? 'Alamat belum diisi' }}</p>
+                          @if($c->telepon)
+                          <p class="text-xs text-gray-400"><i class="fas fa-phone text-[10px] mr-1"></i>{{ $c->telepon }}</p>
+                          @endif
+                        </div>
+                      </div>
+                    </div>
+                    {{-- Checkmark --}}
+                    <div class="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center
+                      peer-checked:border-yellow-400 peer-checked:bg-yellow-400 transition-all">
+                      <i class="fas fa-check text-white text-[10px] opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                    </div>
+                  </label>
+                  @endforeach
+                </div>
+                @error('cabang_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
               </div>
 
               {{-- Deskripsi --}}

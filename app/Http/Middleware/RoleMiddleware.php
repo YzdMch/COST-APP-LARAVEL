@@ -8,10 +8,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!$request->user() || $request->user()->role !== $role) {
+        if (!$request->user() || !in_array($request->user()->role, $roles)) {
             abort(403, 'Akses tidak diizinkan.');
+        }
+
+        // Block inactive users
+        if (!$request->user()->is_active) {
+            auth()->logout();
+            return redirect()->route('login')->withErrors([
+                'email' => 'Akun Anda telah dinonaktifkan. Hubungi admin.',
+            ]);
         }
 
         return $next($request);

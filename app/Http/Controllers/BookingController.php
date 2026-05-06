@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cabang;
 use App\Models\EstimasiHarga;
 use App\Models\Servis;
 use App\Models\ServisLog;
@@ -11,7 +12,8 @@ class BookingController extends Controller
 {
     public function create()
     {
-        return view('booking.create');
+        $cabangList = Cabang::where('is_active', true)->orderBy('nama')->get();
+        return view('booking.create', compact('cabangList'));
     }
 
     public function store(Request $request)
@@ -22,9 +24,12 @@ class BookingController extends Controller
             'no_telepon' => 'required|string|min:9|max:20',
             'perangkat'  => 'required|in:macbook,windows,pc,imac,other',
             'kerusakan'  => 'required|in:lcd,battery,ssd,thermal,other',
-            'cabang'     => 'required|in:surabaya',
+            'cabang_id'  => 'required|exists:cabang,id',
             'deskripsi'  => 'required|string|min:5',
         ]);
+
+        // Get the cabang for backward-compatible 'cabang' column
+        $cabang = Cabang::findOrFail($request->cabang_id);
 
         // Get price estimate
         $estimasi = EstimasiHarga::where('perangkat', $request->perangkat)
@@ -39,7 +44,8 @@ class BookingController extends Controller
             'no_telepon'       => $request->no_telepon,
             'perangkat'        => $request->perangkat,
             'jenis_kerusakan'  => $request->kerusakan,
-            'cabang'           => $request->cabang,
+            'cabang'           => strtolower(explode(' ', $cabang->nama)[1] ?? $cabang->nama), // backward compat
+            'cabang_id'        => $request->cabang_id,
             'deskripsi'        => $request->deskripsi,
             'estimasi_harga'   => $estimasi?->harga_max,
             'status'           => 'Diterima',
@@ -49,7 +55,7 @@ class BookingController extends Controller
         ServisLog::create([
             'servis_id'  => $servis->id,
             'status'     => 'Diterima',
-            'catatan'    => 'Booking baru masuk dari pelanggan.',
+            'catatan'    => 'Booking baru masuk dari pelanggan. Cabang: ' . $cabang->nama,
             'updated_by' => auth()->id(),
         ]);
 

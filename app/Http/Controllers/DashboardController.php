@@ -11,6 +11,11 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Admin redirect to admin panel
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         if ($user->isTeknisi()) {
             return $this->teknisiDashboard();
         }
@@ -20,7 +25,16 @@ class DashboardController extends Controller
 
     private function teknisiDashboard()
     {
-        $semuaServis = Servis::orderBy('created_at', 'desc')->get();
+        $user = auth()->user();
+        $cabangId = $user->cabang_id;
+
+        // Only show servis from the teknisi's cabang
+        $query = Servis::orderBy('created_at', 'desc');
+        if ($cabangId) {
+            $query->where('cabang_id', $cabangId);
+        }
+        $semuaServis = $query->get();
+
         $totalServis  = $semuaServis->count();
         $totalSelesai = $semuaServis->where('status', 'Selesai')->count();
         $totalProses  = $totalServis - $totalSelesai;
@@ -34,8 +48,10 @@ class DashboardController extends Controller
             'Selesai'      => $semuaServis->where('status', 'Selesai')->count(),
         ];
 
-        // Recent logs
+        // Recent logs — only from servis in this cabang
+        $servisIds = $semuaServis->pluck('id');
         $recentLogs = ServisLog::with(['servis', 'updatedByUser'])
+            ->whereIn('servis_id', $servisIds)
             ->orderBy('updated_at', 'desc')
             ->limit(5)
             ->get();
@@ -43,9 +59,12 @@ class DashboardController extends Controller
         // Revenue estimate
         $totalRevenue = $semuaServis->where('status', 'Selesai')->sum('estimasi_harga');
 
+        // Cabang name for display
+        $cabangNama = $user->cabang?->nama ?? 'Semua Cabang';
+
         return view('dashboard.teknisi', compact(
             'semuaServis', 'totalServis', 'totalSelesai', 'totalProses',
-            'statusBreakdown', 'recentLogs', 'totalRevenue'
+            'statusBreakdown', 'recentLogs', 'totalRevenue', 'cabangNama'
         ));
     }
 

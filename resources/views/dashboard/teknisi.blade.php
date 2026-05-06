@@ -14,7 +14,7 @@
 
     <div class="mb-8">
       <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800">Dashboard Teknisi</h1>
-      <p class="text-gray-400 mt-1">Kelola dan update progres perbaikan pelanggan</p>
+      <p class="text-gray-400 mt-1">Kelola dan update progres perbaikan pelanggan — <span class="text-yellow-600 font-semibold">{{ $cabangNama }}</span></p>
     </div>
 
     {{-- Alerts --}}

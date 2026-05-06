@@ -27,10 +27,18 @@
         <span class="text-sm text-gray-500 mr-1">
           <i class="fas fa-circle text-green-400 text-[8px] mr-1.5"></i>{{ Auth::user()->name }}
         </span>
+        @if(Auth::user()->isAdmin())
+        <a href="{{ route('admin.dashboard') }}"
+          class="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white text-sm font-semibold px-5 py-2 rounded-xl shadow-sm shadow-red-200 hover:shadow-md transition-all duration-200">
+          <i class="fas fa-shield-alt mr-1.5"></i>Admin Panel
+        </a>
+        @endif
+        @if(!Auth::user()->isAdmin())
         <a href="{{ route('dashboard') }}"
           class="bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white text-sm font-semibold px-5 py-2 rounded-xl shadow-sm shadow-yellow-200 hover:shadow-md hover:shadow-yellow-200 transition-all duration-200">
           <i class="fas fa-th-large mr-1.5"></i>Dashboard
         </a>
+        @endif
         <form method="POST" action="{{ route('logout') }}" class="inline">
           @csrf
           <button type="submit"
@@ -75,10 +83,18 @@
     </ul>
     <div class="flex flex-col gap-2 border-t border-gray-100 pt-3">
       @auth
+        @if(Auth::user()->isAdmin())
+        <a href="{{ route('admin.dashboard') }}"
+          class="bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center transition">
+          <i class="fas fa-shield-alt mr-1.5"></i>Admin Panel
+        </a>
+        @endif
+        @if(!Auth::user()->isAdmin())
         <a href="{{ route('dashboard') }}"
           class="bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center transition">
           <i class="fas fa-th-large mr-1.5"></i>Dashboard
         </a>
+        @endif
         <form method="POST" action="{{ route('logout') }}">
           @csrf
           <button type="submit"
