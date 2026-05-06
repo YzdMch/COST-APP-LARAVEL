@@ -31,4 +31,25 @@ class ServisLog extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    /**
+     * Get the full URL for the photo.
+     * Supports:
+     *  - Cloudinary URL (https://res.cloudinary.com/...)
+     *  - Relative path (uploads/xxx.jpg) — legacy local storage
+     *  - Basename only (xxx.jpg) — oldest legacy data
+     */
+    public function getFotoUrlAttribute(): ?string
+    {
+        if (!$this->foto) return null;
+
+        // Cloudinary URL — already a full URL, return as-is
+        if (str_starts_with($this->foto, 'http')) {
+            return $this->foto;
+        }
+
+        // Local storage fallback (legacy data)
+        $path = str_contains($this->foto, '/') ? $this->foto : 'uploads/' . $this->foto;
+        return asset('storage/' . $path);
+    }
 }

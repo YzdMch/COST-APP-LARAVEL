@@ -9,21 +9,35 @@ use Illuminate\Http\Request;
 class StatusController extends Controller
 {
     /**
-     * Update status servis (teknisi only)
+     * Status order — can only move forward, never backward.
      */
+    private const STATUS_ORDER = ['Diterima', 'Sedang dicek', 'Perbaikan', 'Testing', 'Selesai'];
+
     public function update(Request $request, Servis $servis)
     {
         $request->validate([
             'status'  => 'required|in:Diterima,Sedang dicek,Perbaikan,Testing,Selesai',
-            'catatan' => 'nullable|string|max:1000',
+            'catatan' => 'required|string|max:1000',
             'foto'    => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        // Handle photo upload
+        // Enforce forward-only progression
+        $currentIdx = array_search($servis->status, self::STATUS_ORDER);
+        $newIdx     = array_search($request->status, self::STATUS_ORDER);
+
+        if ($newIdx === false || $newIdx <= $currentIdx) {
+            return back()->withErrors(['status' => 'Status hanya bisa dimajukan ke tahap berikutnya.']);
+        }
+
+        // Upload foto ke Cloudinary
         $foto = null;
         if ($request->hasFile('foto')) {
-            $foto = $request->file('foto')->store('uploads', 'public');
-            $foto = basename($foto);
+            $cloudinary = new \Cloudinary\Cloudinary(env('CLOUDINARY_URL'));
+            $result = $cloudinary->uploadApi()->upload(
+                $request->file('foto')->getRealPath(),
+                ['folder' => 'geeko-servis']
+            );
+            $foto = $result['secure_url'];
         }
 
         // Update servis status
@@ -38,6 +52,8 @@ class StatusController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard')
+            ->with('pesan', 'status_berhasil')
+            ->with('tiket_highlight', $servis->nomor_tiket);
     }
 }

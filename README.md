@@ -1,8 +1,8 @@
 # 🖥️ Geeko Komputer — Sistem Servis & Estimasi Biaya
 
-Aplikasi manajemen servis komputer dengan fitur estimasi biaya transparan, booking online, dan tracking status perbaikan.
+Aplikasi manajemen servis komputer dengan fitur estimasi biaya transparan, booking online, tracking status perbaikan real-time, dan cloud storage untuk foto progres.
 
-**Tech Stack:** Laravel 12 · Blade · Tailwind CSS · Alpine.js · MySQL
+**Tech Stack:** Laravel 12 · Blade · Tailwind CSS · Alpine.js · MySQL · Cloudinary
 
 ---
 
@@ -35,15 +35,18 @@ php artisan key:generate
 # 3. Database — buat database di MySQL/phpMyAdmin:
 #    CREATE DATABASE cost_db_laravel;
 
-# 4. Sesuaikan .env jika perlu (lihat komentar di .env.example)
+# 4. Sesuaikan .env (lihat bagian Konfigurasi di bawah)
 
 # 5. Migrate + seed
 php artisan migrate --seed
 
-# 6. Build assets
+# 6. Storage link (untuk foto lokal)
+php artisan storage:link
+
+# 7. Build assets
 npm run build
 
-# 7. Jalankan
+# 8. Jalankan
 php artisan serve
 ```
 
@@ -60,18 +63,101 @@ Buka **http://localhost:8000** 🎉
 
 ---
 
-## 🌐 Fitur & Halaman
+## 🔄 Alur Bisnis Aplikasi
 
-| URL | Fitur | Akses |
-|-----|-------|-------|
-| `/` | Landing page | Semua |
-| `/estimasi` | Form estimasi biaya otomatis | Semua |
-| `/login` | Login | Guest |
-| `/register` | Register (otomatis jadi pelanggan) | Guest |
-| `/dashboard` | Dashboard — auto-detect role | Login |
-| `/booking` | Booking servis | Pelanggan |
-| `/servis/{id}` | Detail + timeline status | Login |
-| `/servis/{id}/edit` | Edit data servis | Teknisi |
+```
+┌─────────────┐     ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│  PELANGGAN  │     │   SISTEM    │     │   TEKNISI    │     │  PELANGGAN  │
+│             │     │             │     │              │     │             │
+│ 1. Cek      │────▶│ Tampilkan   │     │              │     │             │
+│    Estimasi  │     │ kisaran     │     │              │     │             │
+│    (publik)  │     │ harga       │     │              │     │             │
+│             │     │             │     │              │     │             │
+│ 2. Register │────▶│ Buat akun   │     │              │     │             │
+│    / Login   │     │ pelanggan   │     │              │     │             │
+│             │     │             │     │              │     │             │
+│ 3. Booking  │────▶│ Generate    │────▶│ 4. Terima    │     │             │
+│    servis    │     │ nomor tiket │     │    servis    │     │             │
+│             │     │ (GK-xxxx)   │     │              │     │             │
+│             │     │             │     │ 5. Update    │────▶│ 6. Lihat    │
+│             │     │             │     │    status    │     │    progres  │
+│             │     │             │     │    + foto    │     │    real-time│
+│             │     │             │     │              │     │             │
+│             │     │             │     │ 7. Konfirmasi│────▶│ 8. Lihat    │
+│             │     │             │     │    harga     │     │    harga    │
+│             │     │             │     │    final     │     │    final    │
+│             │     │             │     │              │     │             │
+│             │     │             │     │ 9. Selesai   │────▶│ 10. Ambil   │
+│             │     │             │     │              │     │    perangkat│
+└─────────────┘     └─────────────┘     └──────────────┘     └─────────────┘
+```
+
+### Status Lifecycle
+
+```
+Diterima → Sedang dicek → Perbaikan → Testing → Selesai
+```
+
+- Status hanya bisa **maju ke depan** (tidak bisa mundur)
+- Setiap perubahan status **wajib** disertai catatan tindakan
+- Foto bukti progres bisa dilampirkan (disimpan di Cloudinary)
+- Pelanggan bisa melihat semua update di halaman Detail Servis
+
+---
+
+## 🌐 Halaman & Fitur
+
+### Publik (Tanpa Login)
+
+| URL | Fitur |
+|-----|-------|
+| `/` | Landing page — layanan, keunggulan, CTA, kontak |
+| `/estimasi` | Cek estimasi biaya instan (pilih perangkat + kerusakan) |
+
+### Pelanggan
+
+| URL | Fitur |
+|-----|-------|
+| `/dashboard` | Statistik booking, progress tracker servis aktif, riwayat servis |
+| `/booking` | Form booking servis (isi data diri + deskripsi keluhan) |
+| `/servis/{id}` | Detail servis: info perangkat, timeline update, foto bukti |
+
+### Teknisi
+
+| URL | Fitur |
+|-----|-------|
+| `/dashboard` | Statistik (total/selesai/proses/revenue), filter status, search, aktivitas terakhir |
+| `/servis/{id}` | Detail servis + timeline (sama seperti pelanggan) |
+| `/servis/{id}/status` | Update status (forward-only) + catatan + foto |
+| `/servis/{id}/harga` | Update harga final + alasan perubahan |
+
+### Auth
+
+| URL | Fitur |
+|-----|-------|
+| `/login` | Login (split-screen, password toggle, demo quick-fill) |
+| `/register` | Register (otomatis jadi pelanggan) |
+
+---
+
+## ☁️ Cloud Storage (Cloudinary)
+
+Foto progres servis disimpan di **Cloudinary** (free tier: 25GB).
+
+### Konfigurasi di `.env`
+
+```env
+CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+```
+
+> Dapatkan credentials di [cloudinary.com](https://cloudinary.com) → Dashboard → **Root** API key.
+
+### Command
+
+```bash
+# Migrasi foto lama dari local ke cloud
+php artisan photos:migrate-cloud
+```
 
 ---
 
@@ -79,33 +165,42 @@ Buka **http://localhost:8000** 🎉
 
 ```
 app/
+├── Console/Commands/
+│   └── MigratePhotosToCloud    # Migrasi foto local → Cloudinary
 ├── Http/Controllers/
 │   ├── Auth/                   # Login, Register (Laravel Breeze)
-│   ├── BookingController       # Booking servis
-│   ├── DashboardController     # Dashboard (auto-detect role)
-│   ├── EstimasiController      # Form estimasi + AJAX harga
+│   ├── BookingController       # Form booking + store
+│   ├── DashboardController     # Dashboard (auto-detect role, stats)
+│   ├── EstimasiController      # Estimasi harga AJAX
 │   ├── PageController          # Landing page
-│   ├── ServisController        # CRUD servis
-│   └── StatusController        # Update status servis
+│   ├── ServisController        # Detail servis + update harga
+│   └── StatusController        # Update status (forward-only)
 ├── Http/Middleware/
 │   └── RoleMiddleware          # Proteksi route by role
 └── Models/
     ├── User                    # + role, no_telepon
-    ├── EstimasiHarga           # Tabel harga referensi
+    ├── EstimasiHarga           # Tabel referensi harga
     ├── Servis                  # Data booking/servis
-    └── ServisLog               # Log perubahan status
+    └── ServisLog               # Log status + foto (accessor foto_url)
 
 database/
 ├── migrations/                 # Schema tabel
 └── seeders/                    # Data demo (estimasi + users)
 
 resources/views/
-├── layouts/                    # Layout + navigasi
-├── auth/                       # Login, register
-├── estimasi/                   # Form estimasi
-├── booking/                    # Konfirmasi booking
-├── dashboard/                  # Pelanggan & teknisi
-└── servis/                     # Detail & edit
+├── layouts/
+│   ├── app.blade.php           # Layout utama (navbar glassmorphism + footer 4 kolom)
+│   ├── guest.blade.php         # Layout auth (split-screen)
+│   └── navigation.blade.php   # Navbar responsive
+├── auth/                       # Login, register (modern split-screen)
+├── estimasi/                   # Card-based selection + instant result
+├── booking/                    # Form data diri + estimasi summary
+├── dashboard/
+│   ├── pelanggan.blade.php     # Progress tracker + riwayat card
+│   └── teknisi.blade.php      # Stats, filter, search, 2 modal (status + harga)
+├── servis/
+│   └── show.blade.php          # Progress bar + timeline foto + image preview
+└── welcome.blade.php           # Landing page (7 section modern)
 ```
 
 ---
@@ -113,9 +208,12 @@ resources/views/
 ## 🛠️ Command Berguna
 
 ```bash
+php artisan serve                  # Jalankan server
 php artisan migrate:fresh --seed   # Reset database
+php artisan storage:link           # Symlink storage (sekali saja)
+php artisan photos:migrate-cloud   # Pindah foto ke Cloudinary
 php artisan optimize:clear         # Clear semua cache
-npm run build                      # Build ulang CSS/JS
+npm run build                      # Build CSS/JS untuk production
 npm run dev                        # Dev mode (auto-rebuild)
 php artisan route:list             # Lihat semua route
 ```

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class ServisController extends Controller
 {
     /**
-     * Detail servis (pelanggan)
+     * Detail servis — accessible by both pelanggan (own only) and teknisi (all)
      */
     public function show(Servis $servis)
     {
@@ -26,55 +26,37 @@ class ServisController extends Controller
     }
 
     /**
-     * Edit form (teknisi only)
+     * Update harga final (teknisi only)
+     * Used when actual repair cost differs from initial estimate
      */
-    public function edit(Servis $servis)
-    {
-        return view('servis.edit', compact('servis'));
-    }
-
-    /**
-     * Update servis data (teknisi only)
-     */
-    public function update(Request $request, Servis $servis)
+    public function updateHarga(Request $request, Servis $servis)
     {
         $request->validate([
-            'nama_pelanggan'  => 'required|string|min:3|max:100',
-            'email'           => 'required|email|max:150',
-            'no_telepon'      => 'required|string|min:9|max:20',
-            'perangkat'       => 'required|in:macbook,windows,pc,imac,other',
-            'jenis_kerusakan' => 'required|in:lcd,battery,ssd,thermal,other',
-            'status'          => 'required|in:Diterima,Sedang dicek,Perbaikan,Testing,Selesai',
-            'estimasi_harga'  => 'nullable|numeric|min:0',
-            'deskripsi'       => 'required|string|min:5',
+            'estimasi_harga' => 'required|numeric|min:0',
+            'catatan_harga'  => 'required|string|max:500',
         ]);
 
-        $servis->update($request->only([
-            'nama_pelanggan', 'email', 'no_telepon', 'perangkat',
-            'jenis_kerusakan', 'status', 'estimasi_harga', 'deskripsi',
-        ]));
+        $hargaLama = $servis->estimasi_harga;
+        $hargaBaru = $request->estimasi_harga;
 
-        // Log the edit
+        $servis->update([
+            'estimasi_harga' => $hargaBaru,
+        ]);
+
+        // Log the price change
+        $catatan = "Harga diperbarui: Rp " . number_format($hargaLama, 0, ',', '.')
+                 . " → Rp " . number_format($hargaBaru, 0, ',', '.')
+                 . ". Alasan: " . $request->catatan_harga;
+
         ServisLog::create([
             'servis_id'  => $servis->id,
-            'status'     => $request->status,
-            'catatan'    => 'Data servis diperbarui oleh teknisi.',
+            'status'     => $servis->status,
+            'catatan'    => $catatan,
             'updated_by' => auth()->id(),
         ]);
 
         return redirect()->route('dashboard')
-            ->with('pesan', 'edit_berhasil')
+            ->with('pesan', 'harga_berhasil')
             ->with('tiket_highlight', $servis->nomor_tiket);
-    }
-
-    /**
-     * Delete servis (teknisi only)
-     */
-    public function destroy(Servis $servis)
-    {
-        $servis->delete();
-
-        return redirect()->route('dashboard')
-            ->with('pesan', 'hapus_berhasil');
     }
 }

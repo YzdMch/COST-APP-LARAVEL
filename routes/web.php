@@ -35,10 +35,8 @@ Route::middleware('auth')->group(function () {
 
     // Teknisi only
     Route::middleware('role:teknisi')->group(function () {
-        Route::get('/servis/{servis}/edit', [ServisController::class, 'edit'])->name('servis.edit');
-        Route::put('/servis/{servis}', [ServisController::class, 'update'])->name('servis.update');
-        Route::delete('/servis/{servis}', [ServisController::class, 'destroy'])->name('servis.destroy');
         Route::post('/servis/{servis}/status', [StatusController::class, 'update'])->name('servis.status');
+        Route::post('/servis/{servis}/harga', [ServisController::class, 'updateHarga'])->name('servis.harga');
     });
 });
 
