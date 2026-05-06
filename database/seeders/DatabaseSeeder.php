@@ -11,12 +11,15 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * Default: data estimasi harga + 2 akun demo (pelanggan & teknisi).
+     * Untuk import data lama: php artisan db:seed --class=OldDataSeeder
      */
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
             EstimasiHargaSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

@@ -6,80 +6,44 @@ Aplikasi manajemen servis komputer dengan fitur estimasi biaya transparan, booki
 
 ---
 
-## ⚡ Quick Start (Semua OS)
+## ⚡ Quick Start
 
 ### Prasyarat
 
-| Tool | Versi Minimum | Cek |
-|------|---------------|-----|
-| PHP | 8.2+ | `php -v` |
-| Composer | 2.x | `composer -V` |
-| Node.js | 18+ | `node -v` |
-| MySQL | 5.7+ / MariaDB 10.3+ | `mysql --version` |
+| Tool | Versi Minimum | Download |
+|------|---------------|----------|
+| PHP | 8.2+ | [php.net](https://www.php.net/) |
+| Composer | 2.x | [getcomposer.org](https://getcomposer.org/) |
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| MySQL | 5.7+ / MariaDB 10.3+ | [mysql.com](https://dev.mysql.com/downloads/) |
 
-> 💡 **Pakai XAMPP?** Semua sudah termasuk kecuali Node.js dan Composer. Install keduanya terpisah.
+> 💡 **Pakai XAMPP?** PHP dan MySQL sudah termasuk. Install Node.js dan Composer terpisah.
 
----
-
-### 1. Clone & Install Dependencies
+### Setup
 
 ```bash
+# 1. Clone & install
 git clone <url-repo> COST-APP-LARAVEL
 cd COST-APP-LARAVEL
-
-# Install PHP dependencies
 composer install
-
-# Install JS/CSS dependencies
 npm install
-```
 
-### 2. Setup Environment
-
-```bash
-# Copy config
+# 2. Environment
 cp .env.example .env
-
-# Generate app key
 php artisan key:generate
-```
 
-### 3. Setup Database
+# 3. Database — buat database di MySQL/phpMyAdmin:
+#    CREATE DATABASE cost_db_laravel;
 
-Buat database baru di MySQL/phpMyAdmin:
+# 4. Sesuaikan .env jika perlu (lihat komentar di .env.example)
 
-```sql
-CREATE DATABASE cost_db_laravel;
-```
-
-Atau via terminal:
-```bash
-mysql -u root -p -e "CREATE DATABASE cost_db_laravel;"
-```
-
-> ⚙️ **Sesuaikan `.env`** jika username/password MySQL berbeda:
-> ```
-> DB_USERNAME=root
-> DB_PASSWORD=         ← kosong untuk XAMPP default
-> ```
-
-### 4. Jalankan Migration & Seeder
-
-```bash
+# 5. Migrate + seed
 php artisan migrate --seed
-```
 
-Ini akan membuat semua tabel dan data demo (25 data estimasi harga + 2 akun demo).
-
-### 5. Build Assets (Tailwind CSS)
-
-```bash
+# 6. Build assets
 npm run build
-```
 
-### 6. Jalankan Server
-
-```bash
+# 7. Jalankan
 php artisan serve
 ```
 
@@ -96,73 +60,77 @@ Buka **http://localhost:8000** 🎉
 
 ---
 
-## 📁 Struktur Project
-
-```
-app/
-├── Http/
-│   ├── Controllers/
-│   │   ├── Auth/                  # Login, Register (Breeze)
-│   │   ├── BookingController      # Booking servis
-│   │   ├── DashboardController    # Dashboard (auto-detect role)
-│   │   ├── EstimasiController     # Form estimasi + AJAX harga
-│   │   ├── PageController         # Landing page
-│   │   ├── ServisController       # CRUD servis (teknisi)
-│   │   └── StatusController       # Update status (teknisi)
-│   └── Middleware/
-│       └── RoleMiddleware         # Proteksi route by role
-├── Models/
-│   ├── User                       # + role, no_telepon
-│   ├── EstimasiHarga              # Tabel estimasi harga
-│   ├── Servis                     # Data servis/booking
-│   └── ServisLog                  # Log perubahan status
-│
-database/
-├── migrations/                    # Schema tabel
-└── seeders/                       # Data demo
-│
-resources/views/
-├── layouts/                       # app.blade.php, navigation
-├── auth/                          # login, register
-├── estimasi/                      # Form estimasi biaya
-├── booking/                       # Konfirmasi booking
-├── dashboard/                     # Pelanggan & teknisi view
-└── servis/                        # Detail & edit servis
-```
-
----
-
-## 🌐 Halaman & Fitur
+## 🌐 Fitur & Halaman
 
 | URL | Fitur | Akses |
 |-----|-------|-------|
-| `/` | Landing page (hero, layanan, kontak) | Semua |
+| `/` | Landing page | Semua |
 | `/estimasi` | Form estimasi biaya otomatis | Semua |
 | `/login` | Login | Guest |
 | `/register` | Register (otomatis jadi pelanggan) | Guest |
 | `/dashboard` | Dashboard — auto-detect role | Login |
-| `/booking` | Konfirmasi booking servis | Pelanggan |
+| `/booking` | Booking servis | Pelanggan |
 | `/servis/{id}` | Detail + timeline status | Login |
 | `/servis/{id}/edit` | Edit data servis | Teknisi |
 
 ---
 
-## 🔧 Catatan untuk XAMPP
+## 📁 Struktur Project
 
-1. Pastikan **Apache** dan **MySQL** sudah running di XAMPP Control Panel
+```
+app/
+├── Http/Controllers/
+│   ├── Auth/                   # Login, Register (Laravel Breeze)
+│   ├── BookingController       # Booking servis
+│   ├── DashboardController     # Dashboard (auto-detect role)
+│   ├── EstimasiController      # Form estimasi + AJAX harga
+│   ├── PageController          # Landing page
+│   ├── ServisController        # CRUD servis
+│   └── StatusController        # Update status servis
+├── Http/Middleware/
+│   └── RoleMiddleware          # Proteksi route by role
+└── Models/
+    ├── User                    # + role, no_telepon
+    ├── EstimasiHarga           # Tabel harga referensi
+    ├── Servis                  # Data booking/servis
+    └── ServisLog               # Log perubahan status
+
+database/
+├── migrations/                 # Schema tabel
+└── seeders/                    # Data demo (estimasi + users)
+
+resources/views/
+├── layouts/                    # Layout + navigasi
+├── auth/                       # Login, register
+├── estimasi/                   # Form estimasi
+├── booking/                    # Konfirmasi booking
+├── dashboard/                  # Pelanggan & teknisi
+└── servis/                     # Detail & edit
+```
+
+---
+
+## 🛠️ Command Berguna
+
+```bash
+php artisan migrate:fresh --seed   # Reset database
+php artisan optimize:clear         # Clear semua cache
+npm run build                      # Build ulang CSS/JS
+npm run dev                        # Dev mode (auto-rebuild)
+php artisan route:list             # Lihat semua route
+```
+
+---
+
+## 🔧 Catatan XAMPP
+
+1. Start **Apache** dan **MySQL** di XAMPP Control Panel
 2. Buka **phpMyAdmin** → buat database `cost_db_laravel`
-3. Di `.env`, pastikan:
+3. Edit `.env`:
    ```
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=cost_db_laravel
-   DB_USERNAME=root
-   DB_PASSWORD=
+   DB_PASSWORD=          ← kosong (default XAMPP)
    ```
-4. **Node.js** harus diinstall terpisah dari [nodejs.org](https://nodejs.org/)
-5. **Composer** harus diinstall terpisah dari [getcomposer.org](https://getcomposer.org/)
-6. Jalankan `php artisan serve` (jangan pakai Apache virtual host untuk development)
+4. Jalankan `php artisan serve` (bukan via Apache)
 
 ---
 
