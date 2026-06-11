@@ -66,37 +66,58 @@ class StatusController extends Controller
         $servis->update($updateData);
 
         // Save invoice items (parts/komponen yang dibeli)
+        $existingItemIds = [];
         if ($request->filled('items')) {
             foreach ($request->items as $item) {
                 if (empty($item['nama_item'])) continue;
                 $qty = (int) $item['qty'];
                 $harga = (float) $item['harga_satuan'];
-                InvoiceItem::create([
-                    'servis_id'    => $servis->id,
-                    'nama_item'    => $item['nama_item'],
-                    'qty'          => $qty,
-                    'harga_satuan' => $harga,
-                    'subtotal'     => $qty * $harga,
-                    'catatan'      => $item['catatan'] ?? null,
-                    'created_by'   => auth()->id(),
-                ]);
+                
+                if (!empty($item['id'])) {
+                    $invItem = InvoiceItem::find($item['id']);
+                    if ($invItem && $invItem->servis_id == $servis->id) {
+                        $invItem->update([
+                            'nama_item'    => $item['nama_item'],
+                            'qty'          => $qty,
+                            'harga_satuan' => $harga,
+                            'subtotal'     => $qty * $harga,
+                            'catatan'      => $item['catatan'] ?? $invItem->catatan,
+                        ]);
+                        $existingItemIds[] = $invItem->id;
+                    }
+                } else {
+                    $newInv = InvoiceItem::create([
+                        'servis_id'    => $servis->id,
+                        'nama_item'    => $item['nama_item'],
+                        'qty'          => $qty,
+                        'harga_satuan' => $harga,
+                        'subtotal'     => $qty * $harga,
+                        'catatan'      => $item['catatan'] ?? null,
+                        'created_by'   => auth()->id(),
+                    ]);
+                    $existingItemIds[] = $newInv->id;
+                }
             }
         }
+        
+        // Delete items that were removed from the modal
+        InvoiceItem::where('servis_id', $servis->id)
+            ->whereNotIn('id', $existingItemIds)
+            ->delete();
 
-        // Update estimasi_harga:
-        // Priority 1: manual harga_baru
-        // Priority 2: auto-sum from all invoice items (if items exist)
-        if ($request->filled('harga_baru')) {
-            $servis->update(['estimasi_harga' => (float) $request->harga_baru]);
-        } else {
-            $totalItems = InvoiceItem::where('servis_id', $servis->id)->sum('subtotal');
-            if ($totalItems > 0) {
-                $servis->update(['estimasi_harga' => $totalItems]);
-            }
-        }
-
-        // Create log entry — include parts summary in catatan
+        // Update biaya_jasa dan estimasi_harga
         $catatanLog = $request->catatan;
+        if ($request->filled('biaya_jasa')) {
+            $biayaJasaBaru = (float) $request->biaya_jasa;
+            if ($servis->biaya_jasa != $biayaJasaBaru) {
+                $catatanLog .= "\n\n💰 Biaya Jasa Servis diubah menjadi: Rp " . number_format($biayaJasaBaru, 0, ',', '.');
+                $servis->biaya_jasa = $biayaJasaBaru;
+            }
+        }
+
+        $totalItems = InvoiceItem::where('servis_id', $servis->id)->sum('subtotal');
+        $servis->estimasi_harga = $servis->biaya_jasa + $totalItems;
+        $servis->save();
         if ($request->filled('items')) {
             $partsList = collect($request->items)
                 ->filter(fn($i) => !empty($i['nama_item']))

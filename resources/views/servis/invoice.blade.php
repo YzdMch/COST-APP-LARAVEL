@@ -3,9 +3,11 @@
   $labelKerusakan = \App\Models\Servis::labelKerusakan();
   $nomorInvoice   = 'INV-' . $servis->nomor_tiket;
   $tanggalCetak   = now()->format('d M Y');
-  $subtotal       = $items->sum('subtotal');
+
+  $biayaServis    = $servis->biaya_jasa;
+  $subtotal       = $biayaServis + $items->sum('subtotal');
   $tax            = 0;
-  $total          = $subtotal > 0 ? $subtotal : ($servis->estimasi_harga ?? 0);
+  $total          = $subtotal;
 @endphp
 
 <!DOCTYPE html>
@@ -22,9 +24,13 @@
     * { font-family: 'Inter', sans-serif; }
     @media print {
       .no-print { display: none !important; }
-      body { background: white !important; }
-      .invoice-paper { box-shadow: none !important; border-radius: 0 !important; }
-      @page { margin: 15mm; }
+      body { background: white !important; padding: 0 !important; margin: 0 !important; }
+      .invoice-paper { box-shadow: none !important; border-radius: 0 !important; border: none !important; }
+      @page { size: A4; margin: 8mm; }
+      .max-w-3xl { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      .py-8 { padding-top: 0 !important; padding-bottom: 0 !important; }
+      .px-8 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+      .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     }
   </style>
 </head>
@@ -62,16 +68,16 @@
   <div class="max-w-3xl mx-auto py-8 px-4">
     <div class="invoice-paper bg-white shadow-2xl overflow-hidden">
 
-      {{-- Header Teal --}}
-      <div class="bg-[#1a4a6b] px-8 py-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+      {{-- Header Orange --}}
+      <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 class="text-4xl font-black text-white tracking-tight">INVOICE</h1>
         </div>
         <div class="text-right text-white">
           <p class="font-bold text-base">Geeko Komputer</p>
-          <p class="text-[#8fb8d4] text-sm mt-0.5">{{ $servis->cabangRelasi?->alamat ?? 'Surabaya, Jawa Timur' }}</p>
-          <p class="text-[#8fb8d4] text-sm">+62 812-3456-7890</p>
-          <p class="text-[#8fb8d4] text-sm">servis@geeko.com</p>
+          <p class="text-amber-100 text-sm mt-0.5">{{ $servis->cabangRelasi?->alamat ?? 'Surabaya, Jawa Timur' }}</p>
+          <p class="text-amber-100 text-sm">+62 812-3456-7890</p>
+          <p class="text-amber-100 text-sm">servis@geeko.com</p>
         </div>
       </div>
 
@@ -119,44 +125,34 @@
             </tr>
           </thead>
           <tbody>
+            {{-- Row 1: Selalu Jasa Servis --}}
+            <tr class="border-b border-gray-100">
+              <td class="py-2.5 text-gray-400 text-xs">1</td>
+              <td class="py-2.5 text-gray-700">
+                Jasa Servis — {{ $labelKerusakan[$servis->jenis_kerusakan] ?? $servis->jenis_kerusakan }}
+                <br><span class="text-xs text-gray-400">{{ $labelPerangkat[$servis->perangkat] ?? $servis->perangkat }}</span>
+              </td>
+              <td class="py-2.5 text-center text-gray-600">1</td>
+              <td class="py-2.5 text-right text-gray-600">Rp {{ number_format($biayaServis, 0, ',', '.') }}</td>
+              <td class="py-2.5 text-right font-semibold text-gray-800">Rp {{ number_format($biayaServis, 0, ',', '.') }}</td>
+            </tr>
+
+            {{-- Baris tambahan untuk spareparts/items --}}
             @if($items->isNotEmpty())
               @foreach($items as $i => $item)
               <tr class="border-b border-gray-100">
-                <td class="py-3 text-gray-400 text-xs">{{ $i + 1 }}</td>
-                <td class="py-3 text-gray-700">
+                <td class="py-2.5 text-gray-400 text-xs">{{ $i + 2 }}</td>
+                <td class="py-2.5 text-gray-700">
                   {{ $item->nama_item }}
                   @if($item->catatan)
                     <br><span class="text-xs text-gray-400">{{ $item->catatan }}</span>
                   @endif
                 </td>
-                <td class="py-3 text-center text-gray-600">{{ $item->qty }}</td>
-                <td class="py-3 text-right text-gray-600">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
-                <td class="py-3 text-right font-semibold text-gray-800">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                <td class="py-2.5 text-center text-gray-600">{{ $item->qty }}</td>
+                <td class="py-2.5 text-right text-gray-600">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
+                <td class="py-2.5 text-right font-semibold text-gray-800">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
               </tr>
               @endforeach
-            @else
-              {{-- Fallback: Jasa Servis saja --}}
-              <tr class="border-b border-gray-100">
-                <td class="py-3 text-gray-400 text-xs">1</td>
-                <td class="py-3 text-gray-700">
-                  Jasa Servis — {{ $labelKerusakan[$servis->jenis_kerusakan] ?? $servis->jenis_kerusakan }}
-                  <br><span class="text-xs text-gray-400">{{ $labelPerangkat[$servis->perangkat] ?? $servis->perangkat }}</span>
-                </td>
-                <td class="py-3 text-center text-gray-600">1</td>
-                <td class="py-3 text-right text-gray-600">Rp {{ number_format($servis->estimasi_harga ?? 0, 0, ',', '.') }}</td>
-                <td class="py-3 text-right font-semibold text-gray-800">Rp {{ number_format($servis->estimasi_harga ?? 0, 0, ',', '.') }}</td>
-              </tr>
-              {{-- Empty rows for visual padding --}}
-              @for($r = 0; $r < 3; $r++)
-              <tr class="border-b border-gray-100"><td class="py-3" colspan="5">&nbsp;</td></tr>
-              @endfor
-            @endif
-
-            {{-- Extra empty rows --}}
-            @if($items->count() > 0 && $items->count() < 4)
-              @for($r = 0; $r < (4 - $items->count()); $r++)
-              <tr class="border-b border-gray-100"><td class="py-3" colspan="5">&nbsp;</td></tr>
-              @endfor
             @endif
           </tbody>
         </table>
@@ -182,7 +178,7 @@
             </div>
             <div class="flex justify-between py-3 text-base font-black">
               <span class="text-gray-800">Total</span>
-              <span class="bg-[#1a4a6b] text-white px-4 py-1 rounded text-sm font-bold">
+              <span class="bg-orange-600 text-white px-4 py-1 rounded text-sm font-bold">
                 Rp {{ number_format($subtotal > 0 ? $subtotal : ($servis->estimasi_harga ?? 0), 0, ',', '.') }}
               </span>
             </div>
@@ -200,7 +196,7 @@
       </div>
 
       {{-- Footer bar --}}
-      <div class="bg-[#1a4a6b] px-8 py-4 text-center">
+      <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 text-center">
         <p class="text-white font-semibold text-sm">Thank you for your business!</p>
       </div>
 

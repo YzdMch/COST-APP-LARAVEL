@@ -11,29 +11,13 @@ class CabangSeeder extends Seeder
     {
         DB::table('cabang')->insert([
             [
-                'nama'       => 'Geeko Surabaya (Pusat)',
-                'alamat'     => 'Jl. Raya Darmo No. 42, Surabaya, Jawa Timur',
+                'nama'       => 'Surabaya Rungkut',
+                'alamat'     => 'Jl. Rungkut Madya No. 1, Surabaya, Jawa Timur',
                 'telepon'    => '031-1234567',
                 'is_active'  => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'nama'       => 'Geeko Malang',
-                'alamat'     => 'Jl. Ijen No. 15, Malang, Jawa Timur',
-                'telepon'    => '0341-7654321',
-                'is_active'  => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'nama'       => 'Geeko Sidoarjo',
-                'alamat'     => 'Jl. Pahlawan No. 88, Sidoarjo, Jawa Timur',
-                'telepon'    => '031-9876543',
-                'is_active'  => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            ]
         ]);
     }
 }

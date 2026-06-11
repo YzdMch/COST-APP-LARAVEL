@@ -84,9 +84,7 @@ class InvoiceController extends Controller
      */
     private function recalculateHarga(Servis $servis): void
     {
-        $total = $servis->invoiceItems()->sum('subtotal');
-        if ($total > 0) {
-            $servis->update(['estimasi_harga' => $total]);
-        }
+        $total = $servis->biaya_jasa + $servis->invoiceItems()->sum('subtotal');
+        $servis->update(['estimasi_harga' => $total]);
     }
 }

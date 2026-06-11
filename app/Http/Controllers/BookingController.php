@@ -54,6 +54,9 @@ class BookingController extends Controller
             }
         }
 
+        $biayaJasaAwal = 50000;
+        $hargaPartAwal = $estimasi ? $estimasi->harga_max : 0;
+
         $servis = Servis::create([
             'nomor_tiket'    => Servis::generateNomorTiket(),
             'user_id'        => auth()->id(),
@@ -65,10 +68,24 @@ class BookingController extends Controller
             'cabang'         => strtolower(explode(' ', $cabang->nama)[1] ?? $cabang->nama),
             'cabang_id'      => $request->cabang_id,
             'deskripsi'      => $request->deskripsi,
-            'estimasi_harga' => $estimasi?->harga_max,
+            'biaya_jasa'     => $biayaJasaAwal,
+            'estimasi_harga' => $biayaJasaAwal + $hargaPartAwal,
             'foto_booking'   => $fotoBookingUrl,
             'status'         => 'Diterima',
         ]);
+
+        if ($estimasi) {
+            $labelKerusakan = Servis::labelKerusakan();
+            $namaItem = 'Perbaikan ' . ($labelKerusakan[$request->kerusakan] ?? $request->kerusakan);
+            \App\Models\InvoiceItem::create([
+                'servis_id'    => $servis->id,
+                'nama_item'    => $namaItem,
+                'qty'          => 1,
+                'harga_satuan' => $hargaPartAwal,
+                'subtotal'     => $hargaPartAwal,
+                'catatan'      => 'Estimasi awal dari sistem',
+            ]);
+        }
 
         // Create initial log
         ServisLog::create([

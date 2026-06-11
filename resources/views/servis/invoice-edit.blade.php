@@ -1,7 +1,9 @@
 @php
   $labelPerangkat = \App\Models\Servis::labelPerangkat();
   $labelKerusakan = \App\Models\Servis::labelKerusakan();
-  $subtotal = $items->sum('subtotal');
+
+  $biayaServis = $servis->biaya_jasa;
+  $subtotal = $biayaServis + $items->sum('subtotal');
 @endphp
 
 <x-app-layout>
@@ -53,18 +55,18 @@
           <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Ringkasan Invoice</p>
           <div class="space-y-2 text-sm mb-4">
             <div class="flex justify-between">
-              <span class="text-gray-400">Jumlah item</span>
-              <span class="font-semibold">{{ $items->count() }}</span>
+              <span class="text-gray-400">Jasa Servis</span>
+              <span class="font-semibold">Rp {{ number_format($biayaServis, 0, ',', '.') }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-400">Subtotal</span>
-              <span class="font-semibold">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+              <span class="text-gray-400">Total Spareparts ({{ $items->count() }}x)</span>
+              <span class="font-semibold">Rp {{ number_format($items->sum('subtotal'), 0, ',', '.') }}</span>
             </div>
           </div>
           <div class="border-t border-gray-700 pt-3 flex justify-between items-center">
             <span class="text-white font-bold">Total</span>
             <span class="text-yellow-400 font-black text-lg">
-              Rp {{ number_format($subtotal > 0 ? $subtotal : ($servis->estimasi_harga ?? 0), 0, ',', '.') }}
+              Rp {{ number_format($subtotal, 0, ',', '.') }}
             </span>
           </div>
         </div>

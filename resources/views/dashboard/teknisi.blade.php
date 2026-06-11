@@ -146,7 +146,8 @@
                         $nextStatus = $allStatuses[($statusIdx !== false ? $statusIdx : -1) + 1] ?? null;
                       @endphp
                       @if($nextStatus)
-                        <button onclick="openUpdateModal({{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ addslashes($s->nama_pelanggan) }}', '{{ addslashes($labelPerangkat[$s->perangkat] ?? $s->perangkat) }}', '{{ $s->status }}', '{{ $nextStatus }}', {{ $s->estimasi_harga ?? 0 }})"
+                        <button onclick="openUpdateModal(this, {{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ addslashes($s->nama_pelanggan) }}', '{{ addslashes($labelPerangkat[$s->perangkat] ?? $s->perangkat) }}', '{{ $s->status }}', '{{ $nextStatus }}', {{ $s->biaya_jasa ?? 50000 }})"
+                          data-items="{{ json_encode($s->invoiceItems->map(fn($i) => ['id'=>$i->id, 'nama_item'=>$i->nama_item, 'qty'=>$i->qty, 'harga_satuan'=>$i->harga_satuan])->values()) }}"
                           class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition text-xs font-semibold" title="Update Progres">
                           <i class="fas fa-arrow-right text-xs"></i> Update
                         </button>
@@ -265,23 +266,23 @@
             </div>
           </div>
 
-          {{-- 3. Update Harga Estimasi (opsional) --}}
+          {{-- 3. Update Biaya Jasa Servis (opsional) --}}
           <div class="mb-5">
             <label class="block text-gray-700 font-bold mb-2 text-sm">
-              <i class="fas fa-tag text-yellow-500 mr-1"></i> Update Harga Total Servis
+              <i class="fas fa-tools text-yellow-500 mr-1"></i> Update Biaya Jasa Servis
               <span class="text-gray-400 font-normal">(opsional)</span>
             </label>
             <div class="flex items-center gap-3">
               <div class="flex-1 relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">Rp</span>
-                <input type="number" name="harga_baru" id="uHargaBaru" min="0" step="1000"
-                  placeholder="Kosongkan = otomatis dari parts"
+                <input type="number" name="biaya_jasa" id="uBiayaJasa" min="0" step="1000"
+                  placeholder="Kosongkan jika tetap (Rp 50.000)"
                   class="w-full border border-gray-200 rounded-xl py-3 pl-10 pr-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent focus:bg-white transition text-sm">
               </div>
             </div>
             <p class="text-xs text-gray-400 mt-1.5">
               <i class="fas fa-info-circle mr-1"></i>
-              Kosongkan jika ingin dihitung otomatis dari total parts. Isi jika harga berbeda (misal: sudah termasuk jasa).
+              Ubah nilai ini jika tingkat kesulitan servis membutuhkan biaya jasa lebih/kurang dari default.
             </p>
           </div>
 
@@ -329,7 +330,7 @@
     }
 
     // ── Update Modal ─────────────────────────────────────────────────
-    function openUpdateModal(id, tiket, pelanggan, perangkat, currentStatus, nextStatus, currentHarga) {
+    function openUpdateModal(btn, id, tiket, pelanggan, perangkat, currentStatus, nextStatus, biayaJasa) {
       document.getElementById('updateForm').action = '/servis/' + id + '/status';
       document.getElementById('uTiket').textContent = tiket;
       document.getElementById('uPelanggan').textContent = pelanggan;
@@ -337,15 +338,34 @@
       document.getElementById('uCurrentStatus').textContent = currentStatus;
       document.getElementById('uNextStatus').textContent = nextStatus;
       document.getElementById('uNextStatusBtn').textContent = nextStatus;
-      document.getElementById('uHargaBaru').placeholder = currentHarga > 0
-        ? 'Saat ini: Rp ' + parseInt(currentHarga).toLocaleString('id-ID')
-        : 'Kosongkan = otomatis dari parts';
+      document.getElementById('uBiayaJasa').placeholder = biayaJasa > 0
+        ? 'Saat ini: Rp ' + parseInt(biayaJasa).toLocaleString('id-ID')
+        : 'Kosongkan jika tetap';
 
       // Reset
       document.getElementById('partRows').innerHTML = '';
-      document.getElementById('emptyParts').classList.remove('hidden');
-      document.getElementById('totalPartsRow').classList.add('hidden');
-      document.getElementById('uHargaBaru').value = '';
+      partCount = 0;
+      
+      const itemsRaw = btn.getAttribute('data-items');
+      if (itemsRaw) {
+        try {
+          const parsed = JSON.parse(itemsRaw);
+          const items = Array.isArray(parsed) ? parsed : Object.values(parsed);
+          items.forEach(item => {
+            addPartRow(item);
+          });
+        } catch(e) {}
+      }
+      
+      if (document.querySelectorAll('.part-row').length === 0) {
+        document.getElementById('emptyParts').classList.remove('hidden');
+        document.getElementById('totalPartsRow').classList.add('hidden');
+      } else {
+        document.getElementById('emptyParts').classList.add('hidden');
+        document.getElementById('totalPartsRow').classList.remove('hidden');
+      }
+      
+      document.getElementById('uBiayaJasa').value = '';
       document.getElementById('uFoto').value = '';
       document.getElementById('updateFotoPreview').classList.add('hidden');
       document.querySelector('#updateForm textarea[name=catatan]').value = '';
@@ -361,26 +381,33 @@
     // ── Parts rows ───────────────────────────────────────────────────
     let partCount = 0;
 
-    function addPartRow() {
+    function addPartRow(item = null) {
       partCount++;
       const idx = partCount;
       const tbody = document.getElementById('partRows');
       const tr = document.createElement('tr');
       tr.className = 'border-t border-gray-100 part-row';
       tr.id = 'partRow_' + idx;
+      
+      const idVal = item ? item.id : '';
+      const namaVal = item ? item.nama_item.replace(/"/g, '&quot;') : '';
+      const qtyVal = item ? item.qty : 1;
+      const hargaVal = item ? item.harga_satuan : '';
+      
       tr.innerHTML = `
+        <input type="hidden" name="items[${idx}][id]" value="${idVal}">
         <td class="px-2 py-2">
-          <input type="text" name="items[${idx}][nama_item]" required
+          <input type="text" name="items[${idx}][nama_item]" required value="${namaVal}"
             placeholder="Misal: LCD Panel LG 13.3 inch"
             class="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-400 focus:border-transparent">
         </td>
         <td class="px-2 py-2">
-          <input type="number" name="items[${idx}][qty]" required min="1" max="999" value="1"
+          <input type="number" name="items[${idx}][qty]" required min="1" max="999" value="${qtyVal}"
             onchange="calcSubtotal(${idx})" oninput="calcSubtotal(${idx})"
             class="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-400">
         </td>
         <td class="px-2 py-2">
-          <input type="number" name="items[${idx}][harga_satuan]" required min="0" step="1000"
+          <input type="number" name="items[${idx}][harga_satuan]" required min="0" step="1000" value="${hargaVal}"
             placeholder="0" onchange="calcSubtotal(${idx})" oninput="calcSubtotal(${idx})"
             class="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-right focus:outline-none focus:ring-1 focus:ring-yellow-400">
         </td>
@@ -394,6 +421,9 @@
         </td>
       `;
       tbody.appendChild(tr);
+      if (item) {
+        calcSubtotal(idx);
+      }
       document.getElementById('emptyParts').classList.add('hidden');
       calcTotal();
     }
