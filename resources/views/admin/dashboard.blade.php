@@ -71,22 +71,51 @@
     <div class="stat-card">
       <div class="flex items-center justify-between">
         <div>
+          <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Dibatalkan</p>
+          <p class="text-2xl font-extrabold {{ $totalDibatalkan > 0 ? 'text-red-600' : 'text-gray-500' }} mt-1">{{ $totalDibatalkan }}</p>
+        </div>
+        <div class="w-11 h-11 rounded-xl {{ $totalDibatalkan > 0 ? 'bg-red-50' : 'bg-gray-50' }} flex items-center justify-center">
+          <i class="fas fa-times-circle {{ $totalDibatalkan > 0 ? 'text-red-500' : 'text-gray-400' }}"></i>
+        </div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="flex items-center justify-between">
+        <div>
           <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Pelanggan</p>
           <p class="text-2xl font-extrabold text-blue-600 mt-1">{{ $totalUsers }}</p>
         </div>
         <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center"><i class="fas fa-users text-blue-500"></i></div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Cabang Aktif</p>
-          <p class="text-2xl font-extrabold text-violet-600 mt-1">{{ $totalCabang }}</p>
+  </div>
+
+  {{-- Recent Cancellations Alert --}}
+  @if($recentCancellations->isNotEmpty())
+  <div class="bg-red-50 border border-red-100 rounded-2xl p-5 mb-8">
+    <h3 class="font-bold text-red-800 mb-4 flex items-center gap-2">
+      <i class="fas fa-times-circle text-red-500"></i> Pembatalan Terbaru
+    </h3>
+    <div class="space-y-3">
+      @foreach($recentCancellations as $c)
+      <div class="bg-white rounded-xl p-4 border border-red-100 flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-mono font-bold text-red-600 text-sm">{{ $c->nomor_tiket }}</span>
+            <span class="text-gray-500 text-sm">— {{ $c->nama_pelanggan }}</span>
+          </div>
+          @if($c->alasan_batal)
+            <p class="text-sm text-gray-600 bg-red-50 rounded-lg px-3 py-1.5 border border-red-100">
+              <i class="fas fa-quote-left text-red-300 text-[10px] mr-1"></i>{{ $c->alasan_batal }}
+            </p>
+          @endif
         </div>
-        <div class="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center"><i class="fas fa-store text-violet-500"></i></div>
+        <p class="text-xs text-gray-400 flex-shrink-0">{{ $c->cancelled_at?->diffForHumans() }}</p>
       </div>
+      @endforeach
     </div>
   </div>
+  @endif
 
   {{-- Charts Row --}}
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

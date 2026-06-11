@@ -19,13 +19,14 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama'       => 'required|string|min:3|max:100',
-            'email'      => 'required|email|max:150',
-            'no_telepon' => 'required|string|min:9|max:20',
-            'perangkat'  => 'required|in:macbook,windows,pc,imac,other',
-            'kerusakan'  => 'required|in:lcd,battery,ssd,thermal,other',
-            'cabang_id'  => 'required|exists:cabang,id',
-            'deskripsi'  => 'required|string|min:5',
+            'nama'         => 'required|string|min:3|max:100',
+            'email'        => 'required|email|max:150',
+            'no_telepon'   => 'required|string|min:9|max:20',
+            'perangkat'    => 'required|in:macbook,windows,pc,imac,other',
+            'kerusakan'    => 'required|in:lcd,battery,ssd,thermal,other',
+            'cabang_id'    => 'required|exists:cabang,id',
+            'deskripsi'    => 'required|string|min:5',
+            'foto_booking' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ]);
 
         // Get the cabang for backward-compatible 'cabang' column
@@ -36,26 +37,62 @@ class BookingController extends Controller
             ->where('kerusakan', $request->kerusakan)
             ->first();
 
+        // Upload foto booking ke Cloudinary (jika ada)
+        $fotoBookingUrl = null;
+        if ($request->hasFile('foto_booking')) {
+            try {
+                $cloudinary = new \Cloudinary\Cloudinary(env('CLOUDINARY_URL'));
+                $result = $cloudinary->uploadApi()->upload(
+                    $request->file('foto_booking')->getRealPath(),
+                    ['folder' => 'geeko-booking']
+                );
+                $fotoBookingUrl = $result['secure_url'];
+            } catch (\Exception $e) {
+                // Fallback: store locally if Cloudinary fails
+                $path = $request->file('foto_booking')->store('uploads/booking', 'public');
+                $fotoBookingUrl = $path;
+            }
+        }
+
+        $biayaJasaAwal = 50000;
+        $hargaPartAwal = $estimasi ? $estimasi->harga_max : 0;
+
         $servis = Servis::create([
-            'nomor_tiket'      => Servis::generateNomorTiket(),
-            'user_id'          => auth()->id(),
-            'nama_pelanggan'   => $request->nama,
-            'email'            => $request->email,
-            'no_telepon'       => $request->no_telepon,
-            'perangkat'        => $request->perangkat,
-            'jenis_kerusakan'  => $request->kerusakan,
-            'cabang'           => strtolower(explode(' ', $cabang->nama)[1] ?? $cabang->nama), // backward compat
-            'cabang_id'        => $request->cabang_id,
-            'deskripsi'        => $request->deskripsi,
-            'estimasi_harga'   => $estimasi?->harga_max,
-            'status'           => 'Diterima',
+            'nomor_tiket'    => Servis::generateNomorTiket(),
+            'user_id'        => auth()->id(),
+            'nama_pelanggan' => $request->nama,
+            'email'          => $request->email,
+            'no_telepon'     => $request->no_telepon,
+            'perangkat'      => $request->perangkat,
+            'jenis_kerusakan'=> $request->kerusakan,
+            'cabang'         => strtolower(explode(' ', $cabang->nama)[1] ?? $cabang->nama),
+            'cabang_id'      => $request->cabang_id,
+            'deskripsi'      => $request->deskripsi,
+            'biaya_jasa'     => $biayaJasaAwal,
+            'estimasi_harga' => $biayaJasaAwal + $hargaPartAwal,
+            'foto_booking'   => $fotoBookingUrl,
+            'status'         => 'Diterima',
         ]);
+
+        if ($estimasi) {
+            $labelKerusakan = Servis::labelKerusakan();
+            $namaItem = 'Perbaikan ' . ($labelKerusakan[$request->kerusakan] ?? $request->kerusakan);
+            \App\Models\InvoiceItem::create([
+                'servis_id'    => $servis->id,
+                'nama_item'    => $namaItem,
+                'qty'          => 1,
+                'harga_satuan' => $hargaPartAwal,
+                'subtotal'     => $hargaPartAwal,
+                'catatan'      => 'Estimasi awal dari sistem',
+            ]);
+        }
 
         // Create initial log
         ServisLog::create([
             'servis_id'  => $servis->id,
             'status'     => 'Diterima',
-            'catatan'    => 'Booking baru masuk dari pelanggan. Cabang: ' . $cabang->nama,
+            'catatan'    => 'Booking baru masuk dari pelanggan. Cabang: ' . $cabang->nama
+                          . ($fotoBookingUrl ? '. Foto perangkat dilampirkan.' : ''),
             'updated_by' => auth()->id(),
         ]);
 

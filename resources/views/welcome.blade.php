@@ -221,9 +221,9 @@
       <div class="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto">
         @php
         $team = [
-          ['photo' => 'images/nao.jpg', 'init' => 'YZ', 'name' => 'YZ', 'role' => 'Ternak Bebek enak ya...', 'color' => 'from-yellow-400 to-amber-500'],
-          ['photo' => '', 'init' => 'KZ', 'name' => 'KAZUMI', 'role' => 'AI & Architecture', 'color' => 'from-violet-500 to-purple-600'],
-          ['photo' => '', 'init' => 'FR', 'name' => 'FR', 'role' => 'DevOps & Deployment', 'color' => 'from-blue-500 to-cyan-500'],
+          ['photo' => 'images/profile_yazid.jpg', 'init' => 'YZ', 'name' => 'YZ', 'role' => 'Ternak Bebek enak ya...', 'color' => 'from-yellow-400 to-amber-500'],
+          ['photo' => 'images/profile_hugo.jpg', 'init' => 'KZ', 'name' => 'KAZUMI', 'role' => 'AI & Architecture', 'color' => 'from-violet-500 to-purple-600'],
+          ['photo' => 'images/profile_farel.jpg', 'init' => 'FR', 'name' => 'FR', 'role' => 'DevOps & Deployment', 'color' => 'from-blue-500 to-cyan-500'],
         ];
         @endphp
         @foreach($team as $t)

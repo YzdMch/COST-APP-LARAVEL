@@ -15,13 +15,14 @@ class DashboardController extends Controller
     public function index()
     {
         // Key stats
-        $totalServis = Servis::count();
-        $totalSelesai = Servis::where('status', 'Selesai')->count();
-        $totalProses = $totalServis - $totalSelesai;
-        $totalRevenue = Servis::where('status', 'Selesai')->sum('estimasi_harga');
-        $totalUsers = User::where('role', 'pelanggan')->count();
-        $totalTeknisi = User::where('role', 'teknisi')->where('is_active', true)->count();
-        $totalCabang = Cabang::where('is_active', true)->count();
+        $totalServis     = Servis::count();
+        $totalSelesai    = Servis::where('status', 'Selesai')->count();
+        $totalDibatalkan = Servis::where('status', 'Dibatalkan')->count();
+        $totalProses     = $totalServis - $totalSelesai - $totalDibatalkan;
+        $totalRevenue    = Servis::where('status', 'Selesai')->sum('estimasi_harga');
+        $totalUsers      = User::where('role', 'pelanggan')->count();
+        $totalTeknisi    = User::where('role', 'teknisi')->where('is_active', true)->count();
+        $totalCabang     = Cabang::where('is_active', true)->count();
 
         // SLA compliance
         $completedWithSla = Servis::where('status', 'Selesai')
@@ -110,8 +111,15 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Recent cancellations
+        $recentCancellations = Servis::where('status', 'Dibatalkan')
+            ->orderByDesc('cancelled_at')
+            ->limit(5)
+            ->get();
+
         return view('admin.dashboard', compact(
             'totalServis', 'totalSelesai', 'totalProses', 'totalRevenue',
+            'totalDibatalkan', 'recentCancellations',
             'totalUsers', 'totalTeknisi', 'totalCabang',
             'slaCompliance', 'overdueCount',
             'monthlyTrend', 'topKerusakan', 'topPerangkat', 'statusBreakdown',

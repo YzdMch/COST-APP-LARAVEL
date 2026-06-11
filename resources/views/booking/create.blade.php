@@ -30,7 +30,7 @@
       {{-- Form --}}
       <div class="bg-white rounded-2xl shadow-xl shadow-gray-100 border border-gray-100 overflow-hidden">
         <div class="p-6 md:p-8">
-          <form method="POST" action="{{ route('booking.store') }}" id="bookingForm">
+          <form method="POST" action="{{ route('booking.store') }}" id="bookingForm" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="perangkat" x-model="estimasiData.device">
             <input type="hidden" name="kerusakan" x-model="estimasiData.issue">
@@ -87,7 +87,6 @@
                         </div>
                       </div>
                     </div>
-                    {{-- Checkmark --}}
                     <div class="absolute top-3 right-3 w-5 h-5 rounded-full border-2 border-gray-200 flex items-center justify-center
                       peer-checked:border-yellow-400 peer-checked:bg-yellow-400 transition-all">
                       <i class="fas fa-check text-white text-[10px] opacity-0 peer-checked:opacity-100 transition-opacity"></i>
@@ -105,6 +104,45 @@
                   placeholder="Jelaskan detail kerusakan, misal: layar muncul garis vertikal sejak kemarin..."
                   class="w-full border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition">{{ old('deskripsi') }}</textarea>
                 @error('deskripsi') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+              </div>
+
+              {{-- Foto Perangkat --}}
+              <div>
+                <label class="block text-gray-700 font-semibold mb-2 text-sm">
+                  Foto Kondisi Perangkat
+                  <span class="text-gray-400 font-normal ml-1">(opsional, max 4MB)</span>
+                </label>
+                <div id="dropZone"
+                  class="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-yellow-400 hover:bg-yellow-50/50 transition-all duration-200 relative"
+                  onclick="document.getElementById('fotoBookingInput').click()"
+                  ondragover="event.preventDefault(); this.classList.add('border-yellow-400','bg-yellow-50')"
+                  ondragleave="this.classList.remove('border-yellow-400','bg-yellow-50')"
+                  ondrop="handleDrop(event)">
+
+                  {{-- Preview --}}
+                  <div id="previewContainer" class="hidden">
+                    <img id="fotoPreview" src="" alt="Preview" class="max-h-48 mx-auto rounded-xl object-contain mb-3 shadow-sm">
+                    <p class="text-sm font-semibold text-gray-700" id="fotoNama"></p>
+                    <button type="button" onclick="clearFoto(event)" class="mt-2 text-xs text-red-500 hover:text-red-700 font-medium">
+                      <i class="fas fa-times mr-1"></i>Hapus foto
+                    </button>
+                  </div>
+
+                  {{-- Placeholder --}}
+                  <div id="dropPlaceholder">
+                    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                      <i class="fas fa-camera text-gray-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-600 font-semibold text-sm">Klik atau drag & drop foto perangkat</p>
+                    <p class="text-gray-400 text-xs mt-1">JPG, PNG, WEBP • Max 4MB</p>
+                    <p class="text-gray-400 text-xs mt-0.5">Foto kondisi perangkat membantu teknisi kami lebih siap</p>
+                  </div>
+
+                  <input type="file" id="fotoBookingInput" name="foto_booking"
+                    accept="image/jpg,image/jpeg,image/png,image/webp"
+                    class="sr-only" onchange="previewFoto(this)">
+                </div>
+                @error('foto_booking') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
               </div>
             </div>
 
@@ -140,6 +178,41 @@
           return fmt(raw.estimasi_min) + ' — ' + fmt(raw.estimasi_max);
         }
       };
+    }
+
+    function previewFoto(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+          document.getElementById('fotoPreview').src = e.target.result;
+          document.getElementById('fotoNama').textContent = file.name;
+          document.getElementById('previewContainer').classList.remove('hidden');
+          document.getElementById('dropPlaceholder').classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function clearFoto(e) {
+      e.stopPropagation();
+      document.getElementById('fotoBookingInput').value = '';
+      document.getElementById('previewContainer').classList.add('hidden');
+      document.getElementById('dropPlaceholder').classList.remove('hidden');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      const zone = document.getElementById('dropZone');
+      zone.classList.remove('border-yellow-400', 'bg-yellow-50');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        const input = document.getElementById('fotoBookingInput');
+        input.files = dt.files;
+        previewFoto(input);
+      }
     }
   </script>
 </x-app-layout>

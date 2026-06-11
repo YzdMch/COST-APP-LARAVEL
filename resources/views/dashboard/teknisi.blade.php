@@ -22,13 +22,25 @@
       <div id="alertPesan" class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
         <span class="text-green-700 text-sm flex items-center gap-2">
           <i class="fas fa-check-circle"></i>
-          @if($pesan === 'hapus_berhasil') Data servis berhasil dihapus.
-          @elseif($pesan === 'edit_berhasil') Data servis berhasil diperbarui{{ $tiketHighlight ? ' — ' . $tiketHighlight : '' }}.
-          @elseif($pesan === 'status_berhasil') Status berhasil diupdate{{ $tiketHighlight ? ' — ' . $tiketHighlight : '' }}.
-          @elseif($pesan === 'harga_berhasil') Harga berhasil diperbarui{{ $tiketHighlight ? ' — ' . $tiketHighlight : '' }}.
+          @if($pesan === 'status_berhasil') Status berhasil diupdate{{ $tiketHighlight ? ' — ' . $tiketHighlight : '' }}.
+          @elseif($pesan === 'batal_berhasil') Booking {{ $tiketHighlight }} telah dibatalkan.
+          @else Berhasil!
           @endif
         </span>
         <button onclick="document.getElementById('alertPesan').remove()" class="text-green-500 hover:text-green-700"><i class="fas fa-times"></i></button>
+      </div>
+    @endif
+
+    {{-- Cancellation Alert --}}
+    @if($pembatalanBaru > 0)
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-bell text-white text-sm"></i>
+        </div>
+        <div class="flex-1">
+          <p class="font-bold text-red-800">{{ $pembatalanBaru }} Pembatalan Baru</p>
+          <p class="text-red-600 text-sm">Ada pelanggan yang membatalkan booking di cabang Anda.</p>
+        </div>
       </div>
     @endif
 
@@ -67,7 +79,7 @@
       <div class="space-y-3">
         @foreach($recentLogs as $log)
           <div class="flex items-center gap-3 text-sm">
-            <div class="w-2 h-2 rounded-full {{ $log->status === 'Selesai' ? 'bg-green-400' : 'bg-yellow-400' }} flex-shrink-0"></div>
+            <div class="w-2 h-2 rounded-full {{ $log->status === 'Selesai' ? 'bg-green-400' : ($log->status === 'Dibatalkan' ? 'bg-red-400' : 'bg-yellow-400') }} flex-shrink-0"></div>
             <span class="text-gray-500 flex-1">
               <span class="font-semibold text-gray-700">{{ $log->servis?->nomor_tiket }}</span> → {{ $log->status }}
               @if($log->catatan) — <span class="text-gray-400 italic">{{ Str::limit($log->catatan, 40) }}</span> @endif
@@ -96,7 +108,6 @@
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Tiket</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Pelanggan</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Perangkat</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Kerusakan</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Harga</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Teknisi</th>
               <th class="px-5 py-3 text-left text-xs font-semibold text-gray-400 uppercase">Status</th>
@@ -112,8 +123,10 @@
                   <p class="font-medium text-gray-700">{{ $s->nama_pelanggan }}</p>
                   <p class="text-xs text-gray-400">{{ $s->no_telepon }}</p>
                 </td>
-                <td class="px-5 py-4 text-sm text-gray-600">{{ $labelPerangkat[$s->perangkat] ?? $s->perangkat }}</td>
-                <td class="px-5 py-4 text-sm text-gray-600">{{ $labelKerusakan[$s->jenis_kerusakan] ?? $s->jenis_kerusakan }}</td>
+                <td class="px-5 py-4 text-sm text-gray-600">
+                  <p>{{ $labelPerangkat[$s->perangkat] ?? $s->perangkat }}</p>
+                  <p class="text-xs text-gray-400">{{ $labelKerusakan[$s->jenis_kerusakan] ?? $s->jenis_kerusakan }}</p>
+                </td>
                 <td class="px-5 py-4 text-sm font-bold text-yellow-600">{{ $s->estimasi_harga ? 'Rp ' . number_format($s->estimasi_harga, 0, ',', '.') : '-' }}</td>
                 <td class="px-5 py-4 text-sm">
                   @if($s->teknisi)
@@ -127,22 +140,26 @@
                 </td>
                 <td class="px-5 py-4">
                   <div class="flex items-center gap-1.5">
-                    {{-- Update status (disabled if Selesai) --}}
-                    @if($s->status !== 'Selesai')
-                      <button onclick="openStatusModal({{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ $s->nama_pelanggan }}', '{{ $labelPerangkat[$s->perangkat] ?? $s->perangkat }}', '{{ $s->status }}', {{ $statusIdx }})"
-                        class="w-8 h-8 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100 flex items-center justify-center transition" title="Update Status">
-                        <i class="fas fa-arrow-right text-xs"></i>
-                      </button>
+                    {{-- Update Progres (disabled if Selesai or Dibatalkan) --}}
+                    @if(!in_array($s->status, ['Selesai', 'Dibatalkan']))
+                      @php
+                        $nextStatus = $allStatuses[($statusIdx !== false ? $statusIdx : -1) + 1] ?? null;
+                      @endphp
+                      @if($nextStatus)
+                        <button onclick="openUpdateModal(this, {{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ addslashes($s->nama_pelanggan) }}', '{{ addslashes($labelPerangkat[$s->perangkat] ?? $s->perangkat) }}', '{{ $s->status }}', '{{ $nextStatus }}', {{ $s->biaya_jasa ?? 50000 }})"
+                          data-items="{{ json_encode($s->invoiceItems->map(fn($i) => ['id'=>$i->id, 'nama_item'=>$i->nama_item, 'qty'=>$i->qty, 'harga_satuan'=>$i->harga_satuan])->values()) }}"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition text-xs font-semibold" title="Update Progres">
+                          <i class="fas fa-arrow-right text-xs"></i> Update
+                        </button>
+                      @endif
+                    @elseif($s->status === 'Selesai')
+                      <a href="{{ route('servis.invoice', $s) }}"
+                        class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition text-xs font-semibold" title="Invoice">
+                        <i class="fas fa-file-invoice text-xs"></i> Invoice
+                      </a>
                     @else
-                      <div class="w-8 h-8 rounded-lg bg-green-50 text-green-400 flex items-center justify-center" title="Selesai">
-                        <i class="fas fa-check text-xs"></i>
-                      </div>
+                      <span class="px-3 py-1.5 rounded-lg bg-red-50 text-red-400 text-xs font-semibold">Dibatalkan</span>
                     @endif
-                    {{-- Update harga --}}
-                    <button onclick="openHargaModal({{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ $s->nama_pelanggan }}', {{ $s->estimasi_harga ?? 0 }})"
-                      class="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 flex items-center justify-center transition" title="Update Harga">
-                      <i class="fas fa-tag text-xs"></i>
-                    </button>
                     {{-- Detail --}}
                     <a href="{{ route('servis.show', $s) }}"
                       class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition" title="Detail">
@@ -152,7 +169,7 @@
                 </td>
               </tr>
             @empty
-              <tr><td colspan="8" class="px-6 py-14 text-center text-gray-300"><i class="fas fa-inbox text-4xl mb-2 block"></i>Belum ada data servis masuk.</td></tr>
+              <tr><td colspan="7" class="px-6 py-14 text-center text-gray-300"><i class="fas fa-inbox text-4xl mb-2 block"></i>Belum ada data servis masuk.</td></tr>
             @endforelse
           </tbody>
         </table>
@@ -160,80 +177,139 @@
     </div>
   </main>
 
-  {{-- MODAL UPDATE STATUS --}}
-  <div id="modalStatus" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden px-4" onclick="if(event.target===this)closeStatusModal()">
-    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+  {{-- ═══════════════════════════════════════════════════════════════════ --}}
+  {{-- MODAL UPDATE PROGRES TERPADU --}}
+  {{-- ═══════════════════════════════════════════════════════════════════ --}}
+  <div id="modalUpdate" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 hidden px-4 py-6 overflow-y-auto"
+       onclick="if(event.target===this)closeUpdateModal()">
+    <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden my-auto">
+      {{-- Header --}}
       <div class="bg-gradient-to-r from-yellow-400 to-amber-500 px-6 py-4 flex justify-between items-center">
-        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-arrow-right"></i> Update Status</h3>
-        <button onclick="closeStatusModal()" class="text-gray-700 hover:text-gray-900"><i class="fas fa-times text-lg"></i></button>
-      </div>
-      <div class="p-6">
-        <div class="mb-5 bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-          <p><span class="text-gray-400">Tiket:</span> <span id="sTiket" class="font-mono text-yellow-600 font-bold"></span></p>
-          <p><span class="text-gray-400">Pelanggan:</span> <span id="sPelanggan" class="font-semibold text-gray-700"></span></p>
-          <p><span class="text-gray-400">Perangkat:</span> <span id="sPerangkat" class="text-gray-700"></span></p>
-          <p><span class="text-gray-400">Status saat ini:</span> <span id="sCurrentStatus" class="font-semibold text-amber-600"></span></p>
+        <div>
+          <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-arrow-right"></i> Update Progres
+          </h3>
+          <p class="text-xs text-gray-700 mt-0.5">
+            <span id="uTiket" class="font-mono font-bold"></span> —
+            <span id="uPelanggan"></span>
+          </p>
         </div>
-        <form id="statusForm" method="POST" enctype="multipart/form-data">
-          @csrf
-          <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-2 text-sm">Status Berikutnya <span class="text-red-500">*</span></label>
-            <select name="status" id="sStatus" class="w-full border border-gray-200 rounded-xl py-3 px-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent focus:bg-white">
-              {{-- Options will be populated by JS (only forward statuses) --}}
-            </select>
-            <p class="text-xs text-gray-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i>Status hanya bisa dimajukan, tidak bisa dikembalikan</p>
-          </div>
-          <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-2 text-sm">Catatan Tindakan <span class="text-red-500">*</span></label>
-            <textarea name="catatan" rows="3" required placeholder="Jelaskan tindakan yang dilakukan, contoh: LCD sudah diganti panel baru merk LG, tinggal testing..."
-              class="w-full border border-gray-200 rounded-xl py-3 px-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent focus:bg-white"></textarea>
-          </div>
-          <div class="mb-5">
-            <label class="block text-gray-700 font-semibold mb-2 text-sm">Foto Bukti <span class="text-gray-400 font-normal">(opsional)</span></label>
-            <input type="file" name="foto" accept="image/*"
-              class="w-full text-gray-500 border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-yellow-100 file:text-yellow-700 file:font-semibold file:text-xs">
-          </div>
-          <div class="flex gap-3">
-            <button type="button" onclick="closeStatusModal()" class="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">Batal</button>
-            <button type="submit" class="flex-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 font-bold py-3 rounded-xl shadow-lg shadow-yellow-200 transition-all flex items-center justify-center gap-2">
-              <i class="fas fa-save"></i> Simpan
-            </button>
-          </div>
-        </form>
+        <button onclick="closeUpdateModal()" class="text-gray-700 hover:text-gray-900 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/10">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-    </div>
-  </div>
 
-  {{-- MODAL UPDATE HARGA --}}
-  <div id="modalHarga" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden px-4" onclick="if(event.target===this)closeHargaModal()">
-    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
-      <div class="bg-gradient-to-r from-violet-500 to-purple-600 px-6 py-4 flex justify-between items-center">
-        <h3 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-tag"></i> Update Harga</h3>
-        <button onclick="closeHargaModal()" class="text-white/70 hover:text-white"><i class="fas fa-times text-lg"></i></button>
-      </div>
       <div class="p-6">
-        <div class="mb-5 bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
-          <p><span class="text-gray-400">Tiket:</span> <span id="hTiket" class="font-mono text-yellow-600 font-bold"></span></p>
-          <p><span class="text-gray-400">Pelanggan:</span> <span id="hPelanggan" class="font-semibold text-gray-700"></span></p>
-          <p><span class="text-gray-400">Harga saat ini:</span> <span id="hCurrent" class="font-bold text-yellow-600"></span></p>
+        {{-- Info servis --}}
+        <div class="bg-gray-50 rounded-xl p-4 mb-5 grid grid-cols-2 gap-3 text-sm">
+          <div><span class="text-gray-400">Perangkat:</span> <span id="uPerangkat" class="font-semibold text-gray-700 ml-1"></span></div>
+          <div>
+            <span class="text-gray-400">Status:</span>
+            <span id="uCurrentStatus" class="font-semibold text-amber-600 ml-1"></span>
+            <i class="fas fa-arrow-right text-gray-300 mx-1"></i>
+            <span id="uNextStatus" class="font-semibold text-green-600"></span>
+          </div>
         </div>
-        <form id="hargaForm" method="POST">
+
+        <form id="updateForm" method="POST" enctype="multipart/form-data">
           @csrf
-          <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-2 text-sm">Harga Final (Rp) <span class="text-red-500">*</span></label>
-            <input type="number" name="estimasi_harga" id="hHarga" required min="0" placeholder="Contoh: 1500000"
-              class="w-full border border-gray-200 rounded-xl py-3 px-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white">
-          </div>
+
+          {{-- 1. Catatan (wajib) --}}
           <div class="mb-5">
-            <label class="block text-gray-700 font-semibold mb-2 text-sm">Alasan Perubahan <span class="text-red-500">*</span></label>
-            <textarea name="catatan_harga" rows="2" required placeholder="Contoh: Setelah pengecekan, perlu ganti komponen tambahan..."
-              class="w-full border border-gray-200 rounded-xl py-3 px-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent focus:bg-white"></textarea>
-            <p class="text-xs text-gray-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i>Alasan ini akan terlihat oleh pelanggan di timeline servis</p>
+            <label class="block text-gray-700 font-bold mb-2 text-sm">
+              <i class="fas fa-pen text-yellow-500 mr-1"></i> Catatan Tindakan
+              <span class="text-red-500">*</span>
+            </label>
+            <textarea name="catatan" rows="3" required maxlength="2000"
+              placeholder="Jelaskan apa yang sudah dikerjakan. Misal: LCD sudah diganti dengan panel baru merk LG, kondisi bagus..."
+              class="w-full border border-gray-200 rounded-xl py-3 px-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent focus:bg-white transition text-sm"></textarea>
           </div>
-          <div class="flex gap-3">
-            <button type="button" onclick="closeHargaModal()" class="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">Batal</button>
-            <button type="submit" class="flex-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-violet-200 transition-all flex items-center justify-center gap-2">
-              <i class="fas fa-save"></i> Konfirmasi Harga
+
+          {{-- 2. Parts/Komponen (opsional) --}}
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-gray-700 font-bold text-sm">
+                <i class="fas fa-shopping-cart text-yellow-500 mr-1"></i> Komponen / Parts yang Digunakan
+                <span class="text-gray-400 font-normal">(opsional)</span>
+              </label>
+              <button type="button" onclick="addPartRow()"
+                class="text-xs font-semibold text-yellow-600 hover:text-yellow-700 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                <i class="fas fa-plus text-[10px]"></i> Tambah Item
+              </button>
+            </div>
+
+            <div class="border border-gray-200 rounded-xl overflow-hidden">
+              <table class="w-full text-sm" id="partsTable">
+                <thead>
+                  <tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="px-3 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase">Nama Item / Komponen</th>
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold text-gray-400 uppercase w-16">Qty</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-400 uppercase w-36">Harga/unit (Rp)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold text-gray-400 uppercase w-32">Subtotal</th>
+                    <th class="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody id="partRows">
+                  {{-- Rows added dynamically by JS --}}
+                </tbody>
+              </table>
+              <div id="emptyParts" class="px-4 py-6 text-center text-gray-300 text-sm">
+                <i class="fas fa-box-open text-2xl mb-1 block"></i>
+                Belum ada komponen ditambahkan
+              </div>
+            </div>
+
+            {{-- Total --}}
+            <div id="totalPartsRow" class="hidden flex items-center justify-end gap-3 mt-2 px-1">
+              <span class="text-sm text-gray-500 font-medium">Total Parts:</span>
+              <span id="totalParts" class="text-base font-bold text-yellow-600">Rp 0</span>
+            </div>
+          </div>
+
+          {{-- 3. Update Biaya Jasa Servis (opsional) --}}
+          <div class="mb-5">
+            <label class="block text-gray-700 font-bold mb-2 text-sm">
+              <i class="fas fa-tools text-yellow-500 mr-1"></i> Update Biaya Jasa Servis
+              <span class="text-gray-400 font-normal">(opsional)</span>
+            </label>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">Rp</span>
+                <input type="number" name="biaya_jasa" id="uBiayaJasa" min="0" step="1000"
+                  placeholder="Kosongkan jika tetap (Rp 50.000)"
+                  class="w-full border border-gray-200 rounded-xl py-3 pl-10 pr-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent focus:bg-white transition text-sm">
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-1.5">
+              <i class="fas fa-info-circle mr-1"></i>
+              Ubah nilai ini jika tingkat kesulitan servis membutuhkan biaya jasa lebih/kurang dari default.
+            </p>
+          </div>
+
+          {{-- 4. Foto Bukti (opsional) --}}
+          <div class="mb-6">
+            <label class="block text-gray-700 font-bold mb-2 text-sm">
+              <i class="fas fa-camera text-yellow-500 mr-1"></i> Foto Bukti
+              <span class="text-gray-400 font-normal">(opsional)</span>
+            </label>
+            <input type="file" name="foto" id="uFoto" accept="image/*"
+              onchange="previewUpdateFoto(this)"
+              class="w-full text-gray-500 border border-gray-200 rounded-xl p-2.5 bg-gray-50 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-yellow-100 file:text-yellow-700 file:font-semibold file:text-xs">
+            <div id="updateFotoPreview" class="hidden mt-2">
+              <img id="updateFotoImg" src="" alt="Preview" class="max-h-32 rounded-xl object-cover border border-gray-100">
+            </div>
+          </div>
+
+          {{-- Actions --}}
+          <div class="flex gap-3 pt-2 border-t border-gray-100">
+            <button type="button" onclick="closeUpdateModal()"
+              class="flex-1 border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
+              Batal
+            </button>
+            <button type="submit" id="updateSubmitBtn"
+              class="flex-1 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-gray-900 font-bold py-3 rounded-xl shadow-lg shadow-yellow-200 transition-all flex items-center justify-center gap-2">
+              <i class="fas fa-save"></i>
+              <span>Simpan & Update ke <span id="uNextStatusBtn" class="underline"></span></span>
             </button>
           </div>
         </form>
@@ -242,8 +318,7 @@
   </div>
 
   <script>
-    const allStatuses = ['Diterima', 'Sedang dicek', 'Perbaikan', 'Testing', 'Selesai'];
-
+    // ── Filter & Search ──────────────────────────────────────────────
     function filterStatus(val) {
       document.querySelectorAll('.servis-row').forEach(r => r.style.display = (!val || r.dataset.status === val) ? '' : 'none');
     }
@@ -254,40 +329,152 @@
       });
     }
 
-    // Status modal — only show FORWARD statuses
-    function openStatusModal(id, tiket, pelanggan, perangkat, currentStatus, currentIdx) {
-      document.getElementById('statusForm').action = '/servis/' + id + '/status';
-      document.getElementById('sTiket').textContent = tiket;
-      document.getElementById('sPelanggan').textContent = pelanggan;
-      document.getElementById('sPerangkat').textContent = perangkat;
-      document.getElementById('sCurrentStatus').textContent = currentStatus;
+    // ── Update Modal ─────────────────────────────────────────────────
+    function openUpdateModal(btn, id, tiket, pelanggan, perangkat, currentStatus, nextStatus, biayaJasa) {
+      document.getElementById('updateForm').action = '/servis/' + id + '/status';
+      document.getElementById('uTiket').textContent = tiket;
+      document.getElementById('uPelanggan').textContent = pelanggan;
+      document.getElementById('uPerangkat').textContent = perangkat;
+      document.getElementById('uCurrentStatus').textContent = currentStatus;
+      document.getElementById('uNextStatus').textContent = nextStatus;
+      document.getElementById('uNextStatusBtn').textContent = nextStatus;
+      document.getElementById('uBiayaJasa').placeholder = biayaJasa > 0
+        ? 'Saat ini: Rp ' + parseInt(biayaJasa).toLocaleString('id-ID')
+        : 'Kosongkan jika tetap';
 
-      const sel = document.getElementById('sStatus');
-      sel.innerHTML = '';
-      allStatuses.forEach((s, i) => {
-        if (i > currentIdx) {
-          const opt = document.createElement('option');
-          opt.value = s; opt.textContent = s;
-          sel.appendChild(opt);
-        }
+      // Reset
+      document.getElementById('partRows').innerHTML = '';
+      partCount = 0;
+      
+      const itemsRaw = btn.getAttribute('data-items');
+      if (itemsRaw) {
+        try {
+          const parsed = JSON.parse(itemsRaw);
+          const items = Array.isArray(parsed) ? parsed : Object.values(parsed);
+          items.forEach(item => {
+            addPartRow(item);
+          });
+        } catch(e) {}
+      }
+      
+      if (document.querySelectorAll('.part-row').length === 0) {
+        document.getElementById('emptyParts').classList.remove('hidden');
+        document.getElementById('totalPartsRow').classList.add('hidden');
+      } else {
+        document.getElementById('emptyParts').classList.add('hidden');
+        document.getElementById('totalPartsRow').classList.remove('hidden');
+      }
+      
+      document.getElementById('uBiayaJasa').value = '';
+      document.getElementById('uFoto').value = '';
+      document.getElementById('updateFotoPreview').classList.add('hidden');
+      document.querySelector('#updateForm textarea[name=catatan]').value = '';
+
+      document.getElementById('modalUpdate').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeUpdateModal() {
+      document.getElementById('modalUpdate').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // ── Parts rows ───────────────────────────────────────────────────
+    let partCount = 0;
+
+    function addPartRow(item = null) {
+      partCount++;
+      const idx = partCount;
+      const tbody = document.getElementById('partRows');
+      const tr = document.createElement('tr');
+      tr.className = 'border-t border-gray-100 part-row';
+      tr.id = 'partRow_' + idx;
+      
+      const idVal = item ? item.id : '';
+      const namaVal = item ? item.nama_item.replace(/"/g, '&quot;') : '';
+      const qtyVal = item ? item.qty : 1;
+      const hargaVal = item ? item.harga_satuan : '';
+      
+      tr.innerHTML = `
+        <input type="hidden" name="items[${idx}][id]" value="${idVal}">
+        <td class="px-2 py-2">
+          <input type="text" name="items[${idx}][nama_item]" required value="${namaVal}"
+            placeholder="Misal: LCD Panel LG 13.3 inch"
+            class="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-400 focus:border-transparent">
+        </td>
+        <td class="px-2 py-2">
+          <input type="number" name="items[${idx}][qty]" required min="1" max="999" value="${qtyVal}"
+            onchange="calcSubtotal(${idx})" oninput="calcSubtotal(${idx})"
+            class="w-full border border-gray-200 rounded-lg py-2 px-2 text-sm text-center focus:outline-none focus:ring-1 focus:ring-yellow-400">
+        </td>
+        <td class="px-2 py-2">
+          <input type="number" name="items[${idx}][harga_satuan]" required min="0" step="1000" value="${hargaVal}"
+            placeholder="0" onchange="calcSubtotal(${idx})" oninput="calcSubtotal(${idx})"
+            class="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm text-right focus:outline-none focus:ring-1 focus:ring-yellow-400">
+        </td>
+        <td class="px-2 py-2 text-right">
+          <span id="sub_${idx}" class="font-semibold text-gray-700 text-sm">Rp 0</span>
+        </td>
+        <td class="px-2 py-2">
+          <button type="button" onclick="removePartRow(${idx})" class="w-7 h-7 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
+            <i class="fas fa-trash text-[10px]"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      if (item) {
+        calcSubtotal(idx);
+      }
+      document.getElementById('emptyParts').classList.add('hidden');
+      calcTotal();
+    }
+
+    function removePartRow(idx) {
+      document.getElementById('partRow_' + idx)?.remove();
+      calcTotal();
+      if (!document.querySelector('.part-row')) {
+        document.getElementById('emptyParts').classList.remove('hidden');
+        document.getElementById('totalPartsRow').classList.add('hidden');
+      }
+    }
+
+    function calcSubtotal(idx) {
+      const qty   = parseFloat(document.querySelector(`[name="items[${idx}][qty]"]`)?.value) || 0;
+      const harga = parseFloat(document.querySelector(`[name="items[${idx}][harga_satuan]"]`)?.value) || 0;
+      const sub   = qty * harga;
+      const el = document.getElementById('sub_' + idx);
+      if (el) el.textContent = 'Rp ' + sub.toLocaleString('id-ID');
+      calcTotal();
+    }
+
+    function calcTotal() {
+      let total = 0;
+      document.querySelectorAll('.part-row').forEach(row => {
+        const idx = row.id.replace('partRow_', '');
+        const qty   = parseFloat(document.querySelector(`[name="items[${idx}][qty]"]`)?.value) || 0;
+        const harga = parseFloat(document.querySelector(`[name="items[${idx}][harga_satuan]"]`)?.value) || 0;
+        total += qty * harga;
       });
-      document.getElementById('modalStatus').classList.remove('hidden');
+      document.getElementById('totalParts').textContent = 'Rp ' + total.toLocaleString('id-ID');
+      document.getElementById('totalPartsRow').classList.toggle('hidden', total === 0);
     }
-    function closeStatusModal() { document.getElementById('modalStatus').classList.add('hidden'); }
 
-    // Harga modal
-    function openHargaModal(id, tiket, pelanggan, harga) {
-      document.getElementById('hargaForm').action = '/servis/' + id + '/harga';
-      document.getElementById('hTiket').textContent = tiket;
-      document.getElementById('hPelanggan').textContent = pelanggan;
-      document.getElementById('hCurrent').textContent = harga ? 'Rp ' + parseInt(harga).toLocaleString('id-ID') : 'Belum ditentukan';
-      document.getElementById('hHarga').value = harga || '';
-      document.getElementById('modalHarga').classList.remove('hidden');
+    // ── Foto preview ─────────────────────────────────────────────────
+    function previewUpdateFoto(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          document.getElementById('updateFotoImg').src = e.target.result;
+          document.getElementById('updateFotoPreview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
     }
-    function closeHargaModal() { document.getElementById('modalHarga').classList.add('hidden'); }
 
-    // Highlight
+    // ── Highlight row ─────────────────────────────────────────────────
     const hl = '{{ $tiketHighlight ?? '' }}';
-    if (hl) { const row = document.querySelector(`.servis-row[data-tiket="${hl}"]`); if (row) { row.classList.add('bg-yellow-50'); row.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }
+    if (hl) {
+      const row = document.querySelector(`.servis-row[data-tiket="${hl}"]`);
+      if (row) { row.classList.add('bg-yellow-50'); row.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
   </script>
 </x-app-layout>

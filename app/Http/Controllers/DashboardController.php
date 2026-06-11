@@ -37,16 +37,16 @@ class DashboardController extends Controller
 
         $totalServis  = $semuaServis->count();
         $totalSelesai = $semuaServis->where('status', 'Selesai')->count();
-        $totalProses  = $totalServis - $totalSelesai;
+        $totalDibatalkan = $semuaServis->where('status', 'Dibatalkan')->count();
+        $totalProses  = $totalServis - $totalSelesai - $totalDibatalkan;
 
         // Breakdown per status
-        $statusBreakdown = [
-            'Diterima'     => $semuaServis->where('status', 'Diterima')->count(),
-            'Sedang dicek' => $semuaServis->where('status', 'Sedang dicek')->count(),
-            'Perbaikan'    => $semuaServis->where('status', 'Perbaikan')->count(),
-            'Testing'      => $semuaServis->where('status', 'Testing')->count(),
-            'Selesai'      => $semuaServis->where('status', 'Selesai')->count(),
-        ];
+        $statusBreakdown = [];
+        foreach (['Diterima', 'Sedang dicek', 'Perbaikan', 'Testing', 'Selesai', 'Dibatalkan'] as $st) {
+            $count = $semuaServis->where('status', $st)->count();
+            if ($count > 0) $statusBreakdown[$st] = $count;
+        }
+
 
         // Recent logs — only from servis in this cabang
         $servisIds = $semuaServis->pluck('id');
@@ -62,9 +62,15 @@ class DashboardController extends Controller
         // Cabang name for display
         $cabangNama = $user->cabang?->nama ?? 'Semua Cabang';
 
+        // Pembatalan baru (last 48 jam) di cabang ini
+        $pembatalanBaru = Servis::where('status', 'Dibatalkan')
+            ->where('cancelled_at', '>=', now()->subHours(48))
+            ->when($cabangId, fn($q) => $q->where('cabang_id', $cabangId))
+            ->count();
+
         return view('dashboard.teknisi', compact(
             'semuaServis', 'totalServis', 'totalSelesai', 'totalProses',
-            'statusBreakdown', 'recentLogs', 'totalRevenue', 'cabangNama'
+            'statusBreakdown', 'recentLogs', 'totalRevenue', 'cabangNama', 'pembatalanBaru'
         ));
     }
 

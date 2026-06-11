@@ -12,7 +12,7 @@ class UserSeeder extends Seeder
     {
         DB::table('users')->insert([
             [
-                'name'       => 'Admin Geeko',
+                'name'       => 'Shorekeeper',
                 'email'      => 'admin@geeko.com',
                 'no_telepon' => '081234567800',
                 'password'   => Hash::make('123456'),
@@ -23,7 +23,7 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name'       => 'Pelanggan Demo',
+                'name'       => 'Nao Tomori',
                 'email'      => 'pelanggan@geeko.com',
                 'no_telepon' => '081234567890',
                 'password'   => Hash::make('123456'),
@@ -34,23 +34,12 @@ class UserSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name'       => 'Teknisi Surabaya',
+                'name'       => 'Budi Utomo',
                 'email'      => 'teknisi@geeko.com',
                 'no_telepon' => '081234567891',
                 'password'   => Hash::make('123456'),
                 'role'       => 'teknisi',
-                'cabang_id'  => 1, // Surabaya
-                'is_active'  => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name'       => 'Teknisi Malang',
-                'email'      => 'teknisi.malang@geeko.com',
-                'no_telepon' => '081234567892',
-                'password'   => Hash::make('123456'),
-                'role'       => 'teknisi',
-                'cabang_id'  => 2, // Malang
+                'cabang_id'  => 1, // Surabaya Rungkut
                 'is_active'  => true,
                 'created_at' => now(),
                 'updated_at' => now(),
