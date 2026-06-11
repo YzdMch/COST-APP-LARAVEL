@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CancelController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EstimasiController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ServisController;
@@ -35,15 +37,28 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:pelanggan')->group(function () {
         Route::get('/booking', [BookingController::class, 'create'])->name('booking.create');
         Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+
+        // Pembatalan booking (hanya pelanggan, hanya saat status Diterima)
+        Route::post('/servis/{servis}/cancel', [CancelController::class, 'cancel'])->name('servis.cancel');
     });
 
     // Servis detail (any authenticated user)
     Route::get('/servis/{servis}', [ServisController::class, 'show'])->name('servis.show');
 
+    // Invoice servis (any authenticated user — ownership check in controller)
+    Route::get('/servis/{servis}/invoice', [ServisController::class, 'invoice'])->name('servis.invoice');
+
     // Teknisi only
     Route::middleware('role:teknisi')->group(function () {
+        // Update status (combined: status + catatan + parts + harga + foto) — exactly 1 step forward
         Route::post('/servis/{servis}/status', [StatusController::class, 'update'])->name('servis.status');
-        Route::post('/servis/{servis}/harga', [ServisController::class, 'updateHarga'])->name('servis.harga');
+    });
+
+    // Invoice item management (teknisi + admin)
+    Route::middleware('role:teknisi,admin')->group(function () {
+        Route::get('/servis/{servis}/invoice/edit', [InvoiceController::class, 'edit'])->name('invoice.edit');
+        Route::post('/servis/{servis}/invoice/items', [InvoiceController::class, 'addItem'])->name('invoice.addItem');
+        Route::delete('/invoice/items/{item}', [InvoiceController::class, 'deleteItem'])->name('invoice.deleteItem');
     });
 
     // ─── Admin Panel ──────────────────────────────────────────────

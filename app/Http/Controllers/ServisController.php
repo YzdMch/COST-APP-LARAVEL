@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class ServisController extends Controller
 {
     /**
-     * Detail servis — accessible by both pelanggan (own only) and teknisi (all)
+     * Detail servis — accessible by both pelanggan (own only) and teknisi/admin (all)
      */
     public function show(Servis $servis)
     {
@@ -26,37 +26,26 @@ class ServisController extends Controller
     }
 
     /**
-     * Update harga final (teknisi only)
-     * Used when actual repair cost differs from initial estimate
+     * Invoice servis — only accessible if status is Selesai
      */
-    public function updateHarga(Request $request, Servis $servis)
+    public function invoice(Servis $servis)
     {
-        $request->validate([
-            'estimasi_harga' => 'required|numeric|min:0',
-            'catatan_harga'  => 'required|string|max:500',
-        ]);
+        $user = auth()->user();
 
-        $hargaLama = $servis->estimasi_harga;
-        $hargaBaru = $request->estimasi_harga;
+        // Pelanggan can only see their own invoice
+        if ($user->isPelanggan() && $servis->user_id !== $user->id) {
+            abort(403);
+        }
 
-        $servis->update([
-            'estimasi_harga' => $hargaBaru,
-        ]);
+        // Invoice only available for completed services
+        if ($servis->status !== 'Selesai') {
+            return redirect()->route('servis.show', $servis)
+                ->with('error', 'Invoice hanya tersedia untuk servis yang sudah selesai.');
+        }
 
-        // Log the price change
-        $catatan = "Harga diperbarui: Rp " . number_format($hargaLama, 0, ',', '.')
-                 . " → Rp " . number_format($hargaBaru, 0, ',', '.')
-                 . ". Alasan: " . $request->catatan_harga;
+        $logs  = $servis->logs()->with('updatedByUser')->get();
+        $items = $servis->invoiceItems()->with('createdBy')->get();
 
-        ServisLog::create([
-            'servis_id'  => $servis->id,
-            'status'     => $servis->status,
-            'catatan'    => $catatan,
-            'updated_by' => auth()->id(),
-        ]);
-
-        return redirect()->route('dashboard')
-            ->with('pesan', 'harga_berhasil')
-            ->with('tiket_highlight', $servis->nomor_tiket);
+        return view('servis.invoice', compact('servis', 'logs', 'items'));
     }
 }

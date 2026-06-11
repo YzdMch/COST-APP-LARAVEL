@@ -28,18 +28,23 @@ class Servis extends Model
         'deskripsi',
         'estimasi_harga',
         'foto',
+        'foto_booking',
         'status',
         'teknisi_id',
         'assigned_at',
         'sla_target_jam',
         'completed_at',
+        'alasan_batal',
+        'cancelled_at',
+        'cancelled_by',
     ];
 
     protected $casts = [
         'estimasi_harga' => 'decimal:2',
-        'created_at' => 'datetime',
-        'assigned_at' => 'datetime',
-        'completed_at' => 'datetime',
+        'created_at'     => 'datetime',
+        'assigned_at'    => 'datetime',
+        'completed_at'   => 'datetime',
+        'cancelled_at'   => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -62,6 +67,16 @@ class Servis extends Model
         return $this->hasMany(ServisLog::class)->orderBy('updated_at');
     }
 
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class)->orderBy('created_at');
+    }
+
+    public function cancelledByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
     /**
      * Generate unique ticket number: GK-YYYYMMDD-XXXX
      */
@@ -73,12 +88,28 @@ class Servis extends Model
     }
 
     /**
+     * Check if service can be cancelled (only if status is 'Diterima')
+     */
+    public function isCancellable(): bool
+    {
+        return $this->status === 'Diterima';
+    }
+
+    /**
+     * Get the total from invoice items
+     */
+    public function totalInvoice(): float
+    {
+        return (float) $this->invoiceItems()->sum('subtotal');
+    }
+
+    /**
      * Check if service has exceeded SLA target
      */
     public function isOverSla(): bool
     {
         if (!$this->sla_target_jam) return false;
-        if ($this->status === 'Selesai') return false;
+        if (in_array($this->status, ['Selesai', 'Dibatalkan'])) return false;
 
         $startTime = $this->assigned_at ?? $this->created_at;
         $deadline = $startTime->copy()->addHours($this->sla_target_jam);
@@ -145,6 +176,7 @@ class Servis extends Model
             'Perbaikan'    => 'bg-orange-100 text-orange-800',
             'Testing'      => 'bg-lime-100 text-lime-700',
             'Selesai'      => 'bg-green-100 text-green-800',
+            'Dibatalkan'   => 'bg-red-100 text-red-700',
         ];
     }
 
@@ -156,6 +188,7 @@ class Servis extends Model
             'Perbaikan'    => 'fa-wrench',
             'Testing'      => 'fa-vial',
             'Selesai'      => 'fa-check-circle',
+            'Dibatalkan'   => 'fa-times-circle',
         ];
     }
 }
