@@ -21,7 +21,9 @@
         <style>
             body { font-family: 'Inter', sans-serif; }
         </style>
-        <script>
+
+        <!-- Maze Universal Snippet -->
+        <!-- <script>
         (function (m, a, z, e) {
           var s, t, u, v;
           try {
@@ -48,7 +50,8 @@
           a.getElementsByTagName('head')[0].appendChild(s);
           m.mazeUniversalSnippetApiKey = e;
         })(window, document, 'https://snippet.maze.co/maze-universal-loader.js', 'e9f5d1e9-c9c1-4f88-b125-f4e527295f33');
-        </script>
+        </script> -->
+
     </head>
     <body class="font-sans antialiased min-h-screen flex">
         {{-- Left: Branding Panel --}}
