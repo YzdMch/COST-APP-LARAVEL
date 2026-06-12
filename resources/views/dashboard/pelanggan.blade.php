@@ -15,7 +15,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
       <div>
         <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800">
-          Halo, {{ Auth::user()->name }}! 👋
+          Halo, {{ Auth::user()->name }}!
         </h1>
         <p class="text-gray-400 mt-1">Pantau status servis perangkat Anda di sini</p>
       </div>
