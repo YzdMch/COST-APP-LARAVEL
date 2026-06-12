@@ -95,11 +95,11 @@
           </div>
           <div class="flex gap-3">
             <span class="font-bold text-gray-700 w-28">Date of Issue</span>
-            <span class="text-gray-600">{{ $servis->completed_at?->format('d M Y') ?? $tanggalCetak }}</span>
+            <span class="text-gray-600">{{ $servis->completed_at?->format('d M Y, H:i') ?? $tanggalCetak }}</span>
           </div>
           <div class="flex gap-3">
             <span class="font-bold text-gray-700 w-28">Tanggal Masuk</span>
-            <span class="text-gray-600">{{ $servis->created_at->format('d M Y') }}</span>
+            <span class="text-gray-600">{{ $servis->created_at->format('d M Y, H:i') }}</span>
           </div>
           <div class="flex gap-3">
             <span class="font-bold text-gray-700 w-28">Teknisi</span>
@@ -201,7 +201,7 @@
 
       {{-- Footer bar --}}
       <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 text-center">
-        <p class="text-white font-semibold text-sm">Thank you for your business!</p>
+        <p class="text-white font-semibold text-sm">Thank you for using our service!</p>
       </div>
 
     </div>

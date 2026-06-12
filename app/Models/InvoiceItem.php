@@ -28,6 +28,18 @@ class InvoiceItem extends Model
     ];
 
     /**
+     * Convert datetime to application timezone
+     */
+    protected function asDateTime($value)
+    {
+        $dateTime = parent::asDateTime($value);
+        if ($dateTime) {
+            return $dateTime->setTimezone(config('app.timezone'));
+        }
+        return $dateTime;
+    }
+
+    /**
      * Automatically compute subtotal before saving
      */
     protected static function booted(): void

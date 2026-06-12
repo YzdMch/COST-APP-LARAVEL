@@ -70,7 +70,7 @@
         @csrf
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Cabang <span class="text-red-500">*</span></label>
-          <input type="text" name="nama" required maxlength="100" placeholder="Geeko Jakarta" class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm focus:ring-2 focus:ring-yellow-400">
+          <input type="text" name="nama" required maxlength="100" placeholder="Geeko Surabaya Rungkut" class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm focus:ring-2 focus:ring-yellow-400">
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>

@@ -33,7 +33,7 @@
 
     {{-- Cancellation Alert --}}
     @if($pembatalanBaru > 0)
-      <div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 flex items-center gap-4">
+      <div id="alertPembatalan" class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6 items-center gap-4" style="display: none;">
         <div class="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0">
           <i class="fas fa-bell text-white text-sm"></i>
         </div>
@@ -41,7 +41,22 @@
           <p class="font-bold text-red-800">{{ $pembatalanBaru }} Pembatalan Baru</p>
           <p class="text-red-600 text-sm">Ada pelanggan yang membatalkan booking di cabang Anda.</p>
         </div>
+        <button onclick="dismissPembatalanTeknisi()" class="text-red-500 hover:text-red-700 ml-2" title="Tutup">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const currentCount = '{{ $pembatalanBaru }}';
+          if (localStorage.getItem('dismissed_pembatalan_teknisi') !== currentCount) {
+            document.getElementById('alertPembatalan').style.display = 'flex';
+          }
+        });
+        function dismissPembatalanTeknisi() {
+          localStorage.setItem('dismissed_pembatalan_teknisi', '{{ $pembatalanBaru }}');
+          document.getElementById('alertPembatalan').remove();
+        }
+      </script>
     @endif
 
     {{-- Stats --}}
@@ -146,11 +161,18 @@
                         $nextStatus = $allStatuses[($statusIdx !== false ? $statusIdx : -1) + 1] ?? null;
                       @endphp
                       @if($nextStatus)
-                        <button onclick="openUpdateModal(this, {{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ addslashes($s->nama_pelanggan) }}', '{{ addslashes($labelPerangkat[$s->perangkat] ?? $s->perangkat) }}', '{{ $s->status }}', '{{ $nextStatus }}', {{ $s->biaya_jasa ?? 50000 }})"
-                          data-items="{{ json_encode($s->invoiceItems->map(fn($i) => ['id'=>$i->id, 'nama_item'=>$i->nama_item, 'qty'=>$i->qty, 'harga_satuan'=>$i->harga_satuan])->values()) }}"
-                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition text-xs font-semibold" title="Update Progres">
-                          <i class="fas fa-arrow-right text-xs"></i> Update
-                        </button>
+                        @if(!is_null($s->teknisi_id) && $s->teknisi_id !== Auth::id())
+                          <button type="button" onclick="alert('Pekerjaan ini sudah diambil oleh teknisi lain!')"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition text-xs font-semibold" title="Sudah Diambil Teknisi Lain">
+                            <i class="fas fa-lock text-xs"></i> Terkunci
+                          </button>
+                        @else
+                          <button onclick="openUpdateModal(this, {{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ addslashes($s->nama_pelanggan) }}', '{{ addslashes($labelPerangkat[$s->perangkat] ?? $s->perangkat) }}', '{{ $s->status }}', '{{ $nextStatus }}', {{ $s->biaya_jasa ?? 50000 }})"
+                            data-items="{{ json_encode($s->invoiceItems->map(fn($i) => ['id'=>$i->id, 'nama_item'=>$i->nama_item, 'qty'=>$i->qty, 'harga_satuan'=>$i->harga_satuan])->values()) }}"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition text-xs font-semibold" title="Update Progres">
+                            <i class="fas fa-arrow-right text-xs"></i> Update
+                          </button>
+                        @endif
                       @endif
                     @elseif($s->status === 'Selesai')
                       <a href="{{ route('servis.invoice', $s) }}"

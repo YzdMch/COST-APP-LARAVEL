@@ -50,11 +50,15 @@ class StatusController extends Controller
             $foto = $result['secure_url'];
         }
 
-        // Auto-assign to the teknisi if not assigned yet
+        // Auto-assign to the teknisi if not assigned yet, or reject if assigned to someone else
         $updateData = ['status' => $nextStatus];
-        if (is_null($servis->teknisi_id) && auth()->user()->role === 'teknisi') {
-            $updateData['teknisi_id'] = auth()->id();
-            $updateData['assigned_at'] = now();
+        if (auth()->user()->role === 'teknisi') {
+            if (is_null($servis->teknisi_id)) {
+                $updateData['teknisi_id'] = auth()->id();
+                $updateData['assigned_at'] = now();
+            } else if ($servis->teknisi_id !== auth()->id()) {
+                return back()->withErrors(['status' => 'Servis ini sudah diambil oleh teknisi lain.']);
+            }
         }
 
         // Set completed_at if moving to Selesai
