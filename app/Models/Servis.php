@@ -144,6 +144,18 @@ class Servis extends Model
     }
 
     /**
+     * Convert datetime to application timezone
+     */
+    protected function asDateTime($value)
+    {
+        $dateTime = parent::asDateTime($value);
+        if ($dateTime) {
+            return $dateTime->setTimezone(config('app.timezone'));
+        }
+        return $dateTime;
+    }
+
+    /**
      * Label maps for display
      */
     public static function labelPerangkat(): array

@@ -22,6 +22,18 @@ class ServisLog extends Model
         'updated_at' => 'datetime',
     ];
 
+    /**
+     * Convert datetime to application timezone
+     */
+    protected function asDateTime($value)
+    {
+        $dateTime = parent::asDateTime($value);
+        if ($dateTime) {
+            return $dateTime->setTimezone(config('app.timezone'));
+        }
+        return $dateTime;
+    }
+
     public function servis(): BelongsTo
     {
         return $this->belongsTo(Servis::class);
