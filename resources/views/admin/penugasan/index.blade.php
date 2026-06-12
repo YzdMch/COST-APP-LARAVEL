@@ -73,6 +73,15 @@
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-end">
     <form method="GET" class="flex flex-wrap gap-3 items-end w-full">
       @if($statusFilter)<input type="hidden" name="status" value="{{ $statusFilter }}">@endif
+      <div class="flex-1 min-w-[200px]">
+        <label class="text-xs font-semibold text-gray-500 mb-1 block">Pencarian</label>
+        <div class="relative">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari tiket atau pelanggan..." 
+            oninput="searchTableAdmin(this.value)"
+            class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-yellow-400">
+        </div>
+      </div>
       <div>
         <label class="text-xs font-semibold text-gray-500 mb-1 block">Cabang</label>
         <select name="cabang_id" onchange="this.form.submit()" class="min-w-[200px] border border-gray-200 rounded-xl py-2 px-3 text-sm focus:ring-2 focus:ring-yellow-400">
@@ -108,6 +117,24 @@
     </div>
   </div>
 
+  {{-- Status pills --}}
+  <div class="flex flex-wrap gap-2 mb-6">
+    @foreach(['Diterima', 'Sedang dicek', 'Perbaikan', 'Testing', 'Selesai', 'Dibatalkan'] as $status)
+      @php 
+        $countKey = str_replace(' ', '_', strtolower($status));
+        $count = $stats[$countKey] ?? 0;
+      @endphp
+      <a href="{{ route('admin.penugasan.index', array_merge(request()->only(['cabang_id', 'search']), ['status' => $status])) }}" 
+         class="px-4 py-2 rounded-xl text-xs font-semibold border transition-all {{ $statusClass[$status] ?? '' }} {{ $statusFilter === $status ? 'ring-2 ring-offset-1 ring-gray-400' : 'border-transparent hover:shadow-md' }}">
+        {{ $status }} <span class="ml-1 font-bold">{{ $count }}</span>
+      </a>
+    @endforeach
+    <a href="{{ route('admin.penugasan.index', array_merge(request()->only(['cabang_id', 'search']), ['status' => ''])) }}" 
+       class="px-4 py-2 rounded-xl text-xs font-semibold border border-gray-200 text-gray-500 hover:bg-gray-50 transition {{ !$statusFilter ? 'ring-2 ring-offset-1 ring-gray-400' : '' }}">
+      Semua <span class="ml-1 font-bold">{{ $stats['total'] }}</span>
+    </a>
+  </div>
+
   {{-- Servis Table --}}
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -136,7 +163,7 @@
         <tbody class="divide-y divide-gray-50">
           @forelse($servisList as $s)
           @php $isOverdue = $s->isOverSla(); @endphp
-          <tr class="hover:bg-gray-50/50 {{ $isOverdue ? 'bg-red-50/50' : '' }}">
+          <tr class="hover:bg-gray-50/50 {{ $isOverdue ? 'bg-red-50/50' : '' }} servis-row" data-tiket="{{ $s->nomor_tiket }}" data-nama="{{ strtolower($s->nama_pelanggan) }}">
             <td class="px-5 py-3 font-mono text-yellow-600 font-bold text-xs">{{ $s->nomor_tiket }}</td>
             <td class="px-5 py-3">
               <p class="text-gray-700 font-medium">{{ $s->nama_pelanggan }}</p>
@@ -155,7 +182,11 @@
               @if($s->teknisi)
                 <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{{ $s->teknisi->name }}</span>
               @else
-                <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Belum di-assign</span>
+                @if($s->status === 'Dibatalkan')
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Tidak ter-assign</span>
+                @else
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Belum di-assign</span>
+                @endif
               @endif
             </td>
             <td class="px-5 py-3 text-xs">
@@ -174,7 +205,7 @@
             <td class="px-5 py-3 text-gray-400 text-xs">{{ $s->created_at->format('d M') }}</td>
             <td class="px-5 py-3">
               <div class="flex items-center justify-center gap-1.5">
-                @if(!$s->teknisi && $s->status !== 'Selesai')
+                @if(!$s->teknisi && !in_array($s->status, ['Selesai', 'Dibatalkan']))
                 {{-- Assign button --}}
                 <button onclick="openAssignModal({{ $s->id }}, '{{ $s->nomor_tiket }}', '{{ $s->nama_pelanggan }}', {{ $s->cabang_id ?? 'null' }})"
                   class="w-7 h-7 rounded-lg bg-yellow-50 text-yellow-600 hover:bg-yellow-100 flex items-center justify-center transition" title="Assign Teknisi">
@@ -258,5 +289,12 @@
       document.getElementById('modalAssign').classList.remove('hidden');
     }
     function closeAssignModal() { document.getElementById('modalAssign').classList.add('hidden'); }
+
+    function searchTableAdmin(q) {
+      q = q.toLowerCase();
+      document.querySelectorAll('.servis-row').forEach(r => {
+        r.style.display = (r.dataset.tiket.toLowerCase().includes(q) || r.dataset.nama.includes(q)) ? '' : 'none';
+      });
+    }
   </script>
 </x-admin-layout>

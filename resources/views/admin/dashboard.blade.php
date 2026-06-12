@@ -92,10 +92,15 @@
 
   {{-- Recent Cancellations Alert --}}
   @if($recentCancellations->isNotEmpty())
-  <div class="bg-red-50 border border-red-100 rounded-2xl p-5 mb-8">
-    <h3 class="font-bold text-red-800 mb-4 flex items-center gap-2">
-      <i class="fas fa-times-circle text-red-500"></i> Pembatalan Terbaru
-    </h3>
+  <div id="adminAlertPembatalan" class="bg-red-50 border border-red-100 rounded-2xl p-5 mb-8" style="display: none;">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold text-red-800 flex items-center gap-2">
+        <i class="fas fa-times-circle text-red-500"></i> Pembatalan Terbaru
+      </h3>
+      <button onclick="dismissPembatalanAdmin()" class="text-red-400 hover:text-red-600" title="Tutup">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
     <div class="space-y-3">
       @foreach($recentCancellations as $c)
       <div class="bg-white rounded-xl p-4 border border-red-100 flex items-start justify-between gap-3">
@@ -115,6 +120,18 @@
       @endforeach
     </div>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const currentHash = '{{ $recentCancellations->pluck("id")->join(",") }}';
+      if (localStorage.getItem('dismissed_pembatalan_admin') !== currentHash) {
+        document.getElementById('adminAlertPembatalan').style.display = 'block';
+      }
+    });
+    function dismissPembatalanAdmin() {
+      localStorage.setItem('dismissed_pembatalan_admin', '{{ $recentCancellations->pluck("id")->join(",") }}');
+      document.getElementById('adminAlertPembatalan').remove();
+    }
+  </script>
   @endif
 
   {{-- Charts Row --}}

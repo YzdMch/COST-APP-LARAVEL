@@ -16,10 +16,18 @@ class PenugasanController extends Controller
         $cabangId = $request->input('cabang_id');
         $statusFilter = $request->input('status');
 
+        $search = $request->input('search');
+
         // All servis with relations
         $query = Servis::with(['teknisi', 'cabangRelasi', 'user'])
             ->when($cabangId, fn ($q) => $q->where('cabang_id', $cabangId))
-            ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter));
+            ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('nomor_tiket', 'like', "%{$search}%")
+                        ->orWhere('nama_pelanggan', 'like', "%{$search}%");
+                });
+            });
 
         $servisList = $query->orderByDesc('created_at')->paginate(20);
 
@@ -32,7 +40,8 @@ class PenugasanController extends Controller
             'perbaikan'     => (clone $statsQuery)->where('status', 'Perbaikan')->count(),
             'testing'       => (clone $statsQuery)->where('status', 'Testing')->count(),
             'selesai'       => (clone $statsQuery)->where('status', 'Selesai')->count(),
-            'unassigned'    => (clone $statsQuery)->whereNull('teknisi_id')->where('status', '!=', 'Selesai')->count(),
+            'dibatalkan'    => (clone $statsQuery)->where('status', 'Dibatalkan')->count(),
+            'unassigned'    => (clone $statsQuery)->whereNull('teknisi_id')->whereNotIn('status', ['Selesai', 'Dibatalkan'])->count(),
         ];
 
         // Overdue count
@@ -103,7 +112,7 @@ class PenugasanController extends Controller
         $cabangId = $request->input('cabang_id');
 
         $unassigned = Servis::whereNull('teknisi_id')
-            ->where('status', '!=', 'Selesai')
+            ->whereNotIn('status', ['Selesai', 'Dibatalkan'])
             ->when($cabangId, fn ($q) => $q->where('cabang_id', $cabangId))
             ->get();
 
