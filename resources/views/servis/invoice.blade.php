@@ -201,7 +201,7 @@
 
       {{-- Footer bar --}}
       <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 text-center">
-        <p class="text-white font-semibold text-sm">Thank you for your business!</p>
+        <p class="text-white font-semibold text-sm">Thank you for using our service!</p>
       </div>
 
     </div>
