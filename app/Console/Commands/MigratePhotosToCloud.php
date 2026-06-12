@@ -13,7 +13,7 @@ class MigratePhotosToCloud extends Command
     public function handle()
     {
         $cloudinaryUrl = env('CLOUDINARY_URL');
-        $this->info("🔗 CLOUDINARY_URL: " . ($cloudinaryUrl ? 'SET ✅' : 'NOT SET ❌'));
+        $this->info("CLOUDINARY_URL: " . ($cloudinaryUrl ? 'SET (OK)' : 'NOT SET (FAIL)'));
 
         if (!$cloudinaryUrl) {
             $this->error('Set CLOUDINARY_URL di .env dulu.');
@@ -25,11 +25,11 @@ class MigratePhotosToCloud extends Command
             ->get();
 
         if ($logs->isEmpty()) {
-            $this->info('✅ Tidak ada foto lokal yang perlu dimigrasi.');
+            $this->info('Tidak ada foto lokal yang perlu dimigrasi.');
             return 0;
         }
 
-        $this->info("📦 Ditemukan {$logs->count()} foto untuk dimigrasi...\n");
+        $this->info("Ditemukan {$logs->count()} foto untuk dimigrasi...\n");
 
         $cloudinary = new \Cloudinary\Cloudinary($cloudinaryUrl);
         $success = 0;
@@ -40,13 +40,13 @@ class MigratePhotosToCloud extends Command
             $localPath = storage_path('app/public/' . $filename);
 
             if (!file_exists($localPath)) {
-                $this->warn("⚠️  Skip ID {$log->id}: file tidak ditemukan");
+                $this->warn("Skip ID {$log->id}: file tidak ditemukan");
                 $failed++;
                 continue;
             }
 
             try {
-                $this->info("📤 Uploading ID {$log->id}: {$filename}...");
+                $this->info("Uploading ID {$log->id}: {$filename}...");
 
                 $result = $cloudinary->uploadApi()->upload($localPath, [
                     'folder' => 'geeko-servis',
@@ -55,16 +55,16 @@ class MigratePhotosToCloud extends Command
                 $cloudUrl = $result['secure_url'];
                 $log->update(['foto' => $cloudUrl]);
 
-                $this->info("   ✅ → {$cloudUrl}");
+                $this->info("   [OK] → {$cloudUrl}");
                 $success++;
             } catch (\Exception $e) {
-                $this->error("   ❌ " . $e->getMessage());
+                $this->error("   [FAIL] " . $e->getMessage());
                 $failed++;
             }
         }
 
         $this->newLine();
-        $this->info("📊 Hasil: {$success} berhasil, {$failed} gagal.");
+        $this->info("Hasil: {$success} berhasil, {$failed} gagal.");
         return 0;
     }
 }

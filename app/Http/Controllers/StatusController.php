@@ -110,7 +110,7 @@ class StatusController extends Controller
         if ($request->filled('biaya_jasa')) {
             $biayaJasaBaru = (float) $request->biaya_jasa;
             if ($servis->biaya_jasa != $biayaJasaBaru) {
-                $catatanLog .= "\n\n💰 Biaya Jasa Servis diubah menjadi: Rp " . number_format($biayaJasaBaru, 0, ',', '.');
+                $catatanLog .= "\n\nBiaya Jasa Servis diubah menjadi: Rp " . number_format($biayaJasaBaru, 0, ',', '.');
                 $servis->biaya_jasa = $biayaJasaBaru;
             }
         }
@@ -124,7 +124,7 @@ class StatusController extends Controller
                 ->map(fn($i) => $i['nama_item'] . ' (x' . $i['qty'] . ')')
                 ->implode(', ');
             if ($partsList) {
-                $catatanLog .= "\n\n🛒 Parts: " . $partsList;
+                $catatanLog .= "\n\nParts: " . $partsList;
             }
         }
 
